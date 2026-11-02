@@ -1,12 +1,22 @@
-# Tìm máy rang OTL
+<a href="https://tcl-da.github.io/tim-may-rang/"><img src="tai-nguyen/nut-trang-web.svg" alt="Mở trang tìm máy rang" width="560"></a>
+
+# **https://tcl-da.github.io/tim-may-rang/**
+
+<a href="https://tcl-da.github.io/tim-may-rang/OTL-Tim-May-Rang-v1.0.zip"><img src="tai-nguyen/nut-tai-phan-mem.svg" alt="Tải phần mềm" width="560"></a>
+
+---
+
+## tìm máy rang otl
 
 Phần mềm nhỏ cho khách của OTL: bấm **Tìm máy rang**, phần mềm tự dò máy rang trong mạng của quán, mở
 màn hình điều khiển của máy lên trình duyệt, rồi tạo icon **Máy rang OTL** ngoài desktop. Lần sau khách
 chỉ cần bấm đúp icon đó.
 
-Tải: [`OTL-Tim-May-Rang-v1.0.zip`](OTL-Tim-May-Rang-v1.0.zip), Windows 10/11, không cần cài đặt.
+Windows 10/11, không cần cài đặt.
 
-## Cách chạy
+---
+
+## cách chạy
 
 `OTL Tim May Rang.exe` dựng một máy chủ web nhỏ chỉ nghe `127.0.0.1:47830` rồi mở `index.html` bằng
 trình duyệt mặc định. Bấm nút, phần mềm sẽ:
@@ -38,16 +48,20 @@ Không thấy máy thì khách nhập IP ghi trên màn hình máy. Phần mềm
 Đóng trang 20 giây thì phần mềm tự tắt. Nhật ký ghi ở `%LOCALAPPDATA%\OTL\TimMayRang\nhat-ky.txt`.
 
 Cùng một `index.html` chạy được ở hai chỗ: trong phần mềm thì hiện nút **Tìm máy rang**, còn mở trên
-GitHub Pages (trình duyệt không được quét mạng) thì hiện nút **Tải phần mềm**.
+trang web (trình duyệt không được quét mạng) thì hiện nút **Tải phần mềm**.
 
-## Máy rang cần gì
+---
+
+## máy rang cần gì
 
 Project WinCC Unified của panel phải bật **Web client** và có tài khoản đăng nhập web cho khách.
 Muốn màn hình giãn kín cửa sổ trình duyệt, màn hình gốc chạy `HMIRuntime.UI.RootWindow.Adaption = 2;`
 (ScreenToWindow, giữ tỉ lệ) khi nạp. Trên panel 1280×800 hệ số là 1 nên panel không đổi. Đã thử
-với MTP1200 OTL-30 (192.168.100.245, 02/11/2026): dò ra, mở `https://<ip>/device/WebRH`.
+với panel MTP1200 trên máy OTL-30 (02/11/2026): dò ra, mở `https://<ip>/device/WebRH`.
 
-## Build
+---
+
+## build
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File app\build.ps1

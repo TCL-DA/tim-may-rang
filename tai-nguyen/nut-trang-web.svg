@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="96" viewBox="0 0 560 96" role="img" aria-label="mo trang tim may rang">
+  <rect x="0" y="0" width="560" height="96" fill="#0f0e12"/>
+  <text x="32" y="43" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="300" letter-spacing="2.4" fill="#b2b2b2">TRANG WEB</text>
+  <text x="32" y="74" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="26" font-weight="300" fill="#f6f8f7">mở trang tìm máy rang</text>
+  <path d="M498 48h28M516 38l10 10-10 10" fill="none" stroke="#f6f8f7" stroke-width="1.5"/>
+</svg>

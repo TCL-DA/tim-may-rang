@@ -8,114 +8,112 @@
 <link rel="icon" type="image/png" href="tai-nguyen/icon-otl.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@200;300;400;500&display=swap" rel="stylesheet">
 <style>
-/* Bảng token (quy trình ui-ux-quy-trinh):
-   thép #F2F4F5 nền, than #1E2227 chữ, đỏ OTL #D3202A nút chính, xanh OTL #37B6FF chỉ làm dấu,
-   cộng bốn màu hạt rang cho thanh tiến trình: hạt sống, vàng, nâu, rang đậm.
-   Chỗ đậm duy nhất là thanh "rang" lúc dò; còn lại im. */
+/* Bảng token — hệ "teenage engineering": catalogue công nghiệp dưới đèn studio.
+   Năm màu trung tính, KHÔNG bo góc, KHÔNG đổ bóng, KHÔNG gradient.
+   Chữ mảnh (200/300), phân cấp bằng cỡ chữ và nét kẻ 1px chứ không bằng màu.
+   Màu duy nhất được phép: hổ phách của trạng thái cảnh báo. */
 :root{
-  --nen:#F2F4F5; --nen-2:#E3E7EA; --muc:#1E2227; --muc-2:#4B535C; --than:#262B31; --tren-than:#C9CED4;
-  --do:#D3202A; --do-an:#A9161F; --xanh:#37B6FF;
-  --hat-song:#A7AB6E; --hat-vang:#D2A75B; --hat-nau:#9A5A2C; --hat-dam:#4A2B1A;
+  --nen:#F6F8F7; --than:#0F0E12; --muc:#000000; --net:#E5E5E5; --mo:#767676;
+  --tren-than:#B2B2B2;
   --canh:#9A5205;
-  --font:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif;
-  --r:12px;
+  --font:"Be Vietnam Pro","Inter","Segoe UI",system-ui,sans-serif;
+  --r:0;
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--nen);color:var(--muc)}
-body{font:400 18px/1.55 var(--font)}
+body{font:300 17px/1.55 var(--font)}
 a{color:inherit}
-:focus-visible{outline:3px solid var(--xanh);outline-offset:3px}
-.khung{max-width:1160px;margin:0 auto;padding:0 32px}
+:focus-visible{outline:2px solid var(--muc);outline-offset:3px}
+.khung{max-width:1200px;margin:0 auto;padding:0 32px}
 
-.dau{display:flex;align-items:center;gap:16px;padding:22px 32px}
-.dau img{height:40px;width:auto;display:block}
-.dau .goi{margin-left:auto;font-size:16px;color:var(--muc-2);text-align:right}
-.dau .goi a{display:block;font-weight:800;font-size:20px;color:var(--muc);text-decoration:none}
+.dau{display:flex;align-items:center;gap:15px;padding:22px 32px;border-bottom:1px solid var(--net)}
+.dau img{height:36px;width:auto;display:block}
+.dau .goi{margin-left:auto;font-size:14px;color:var(--mo);text-align:right;letter-spacing:.02em}
+.dau .goi a{display:block;font-weight:300;font-size:19px;color:var(--muc);text-decoration:none}
 
-.chinh{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:56px;align-items:start;padding-top:28px;padding-bottom:72px}
-h1{font-weight:800;font-size:clamp(34px,4.6vw,58px);line-height:1.06;letter-spacing:-.025em;margin:0 0 20px;max-width:15ch}
-.mo-dau{font-size:20px;color:var(--muc-2);max-width:54ch;margin:0 0 32px}
+.chinh{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:66px;align-items:start;padding-top:56px;padding-bottom:66px}
+h1{font-weight:200;font-size:clamp(32px,4.4vw,52px);line-height:1.11;letter-spacing:-.01em;margin:0 0 22px;max-width:16ch}
+.mo-dau{font-size:19px;font-weight:300;color:var(--mo);max-width:56ch;margin:0 0 33px}
+.mo-dau b{color:var(--muc);font-weight:400}
 
-.nut{display:inline-flex;align-items:center;justify-content:center;gap:14px;border:0;border-radius:var(--r);
-  font:800 26px/1 var(--font);cursor:pointer;text-decoration:none;min-height:84px;padding:0 40px}
-.nut svg{width:30px;height:30px;flex:none}
-.nut.lon{background:var(--do);color:#fff;width:100%;max-width:460px}
-.nut.lon:hover{background:var(--do-an)}
-.nut.lon:disabled{background:var(--nen-2);color:var(--muc-2);cursor:progress}
-.nut.nho{font-size:18px;font-weight:600;min-height:52px;padding:0 22px;border:2px solid currentColor;background:transparent;color:inherit}
-.nut.nho svg{width:20px;height:20px}
-.nut.nho:hover{background:rgba(127,127,127,.16)}
-.ghi-nut{font-size:16px;color:var(--muc-2);margin:12px 0 0}
+.nut{display:inline-flex;align-items:center;justify-content:center;gap:15px;border:0;border-radius:0;
+  font:300 24px/1 var(--font);cursor:pointer;text-decoration:none;min-height:80px;padding:0 33px}
+.nut svg{width:26px;height:26px;flex:none;stroke-width:1.6}
+.nut.lon{background:var(--than);color:var(--nen);width:100%;max-width:460px;justify-content:flex-start}
+.nut.lon:hover{background:var(--muc)}
+.nut.lon:disabled{background:var(--nen);color:var(--mo);border:1px solid var(--net);cursor:progress}
+.nut.nho{font-size:17px;font-weight:300;min-height:48px;padding:0 22px;border:1px solid currentColor;background:transparent;color:inherit}
+.nut.nho svg{width:18px;height:18px}
+.nut.nho:hover{background:var(--muc);color:var(--nen)}
+.ghi-nut{font-size:14px;color:var(--mo);margin:15px 0 0}
 
-/* Thanh "rang": dò càng xa hạt càng chín. */
-.rang{margin-top:28px;max-width:460px}
-.rang-ray{height:14px;border-radius:7px;background:var(--nen-2);overflow:hidden}
-.rang-ray i{display:block;height:100%;width:0;border-radius:7px;
-  background:linear-gradient(90deg,var(--hat-song) 0,var(--hat-vang) 35%,var(--hat-nau) 70%,var(--hat-dam) 100%);
-  background-size:460px 100%;transition:width .25s linear}
-.rang-chu{margin:10px 0 0;font-size:16px;color:var(--muc-2);font-variant-numeric:tabular-nums}
+/* Thanh dò: một khối đặc chạy trên nền kẻ, không bo, không chuyển màu. */
+.rang{margin-top:33px;max-width:460px}
+.rang-ray{height:10px;border:1px solid var(--net);background:var(--nen);overflow:hidden}
+.rang-ray i{display:block;height:100%;width:0;background:var(--than);transition:width .25s linear}
+.rang-chu{margin:10px 0 0;font-size:14px;color:var(--mo);font-variant-numeric:tabular-nums}
 
-.ket{margin-top:32px;max-width:560px;border-radius:var(--r);padding:28px 30px}
-.ket h2{margin:0 0 14px;font-size:24px;font-weight:800;line-height:1.2}
+.ket{margin-top:33px;max-width:560px;border-radius:0;padding:33px}
+.ket h2{margin:0 0 15px;font-size:26px;font-weight:200;line-height:1.15}
 .ket p{margin:0 0 12px}
-.ket ul{list-style:none;margin:0 0 20px;padding:0}
+.ket ul{list-style:none;margin:0 0 22px;padding:0}
 .ket ul li{display:flex;gap:12px;align-items:flex-start;margin:0 0 10px}
-.ket li svg{width:22px;height:22px;flex:none;margin-top:3px}
-.ket.tot{background:var(--than);color:#fff}
-.ket.tot li svg{color:#6FD39E}
+.ket li svg{width:20px;height:20px;flex:none;margin-top:4px;stroke-width:1.6}
+.ket.tot{background:var(--than);color:var(--nen)}
+.ket.tot li svg{color:var(--nen)}
 .ket.tot .phu{color:var(--tren-than)}
-.ket.vang{background:#FBF1E3;border:2px solid var(--canh)}
+.ket.vang{background:var(--nen);border:1px solid var(--canh)}
 .ket.vang h2{color:var(--canh)}
-.ket.trang{background:#fff;border:1px solid var(--nen-2)}
-.ket.trang li svg{color:var(--muc-2)}
-.ket h3{margin:24px 0 8px;font-size:20px;font-weight:800}
-.hang-may{display:flex;align-items:center;gap:16px;padding:14px 0;border-top:1px solid rgba(255,255,255,.18)}
-.hang-may b{font-size:20px;font-variant-numeric:tabular-nums}
+.ket.trang{background:var(--nen);border:1px solid var(--net)}
+.ket.trang li svg{color:var(--muc)}
+.ket h3{margin:26px 0 8px;font-size:19px;font-weight:300}
+.hang-may{display:flex;align-items:center;gap:15px;padding:15px 0;border-top:1px solid rgba(255,255,255,.22)}
+.hang-may b{font-size:19px;font-weight:300;font-variant-numeric:tabular-nums}
 .hang-may .nut{margin-left:auto}
 .nhap{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
-.nhap input{font:600 20px/1 var(--font);padding:0 16px;min-height:52px;width:220px;border:2px solid var(--muc-2);
-  border-radius:10px;background:#fff;color:var(--muc);font-variant-numeric:tabular-nums}
-.loi-nho{color:var(--do-an);font-weight:600;margin:10px 0 0}
-ol.buoc{margin:0;padding-left:24px}
+.nhap input{font:300 19px/1 var(--font);padding:0 15px;min-height:48px;width:220px;border:1px solid var(--muc);
+  border-radius:0;background:var(--nen);color:var(--muc);font-variant-numeric:tabular-nums}
+.loi-nho{color:var(--canh);font-weight:400;margin:10px 0 0}
+ol.buoc{margin:0;padding-left:22px}
 ol.buoc li{margin:0 0 8px}
 
-/* Ảnh máy: vòng tròn chỉ đúng vào màn hình điều khiển, thứ sẽ hiện lên máy tính. */
-.anh{margin:0;background:#fff;border-radius:var(--r);padding:24px 24px 18px}
+/* Ảnh máy: chạy sát mép ô, không đệm, không bo — sản phẩm là vật thể đặc duy nhất trên trang. */
+.anh{margin:0;background:var(--nen);border:1px solid var(--net);border-radius:0;padding:0}
 .anh .khung-anh{position:relative}
 .anh img{display:block;width:100%;height:auto}
-.anh .vong{position:absolute;left:24%;top:46.5%;width:29%;aspect-ratio:1;border:3px solid var(--xanh);border-radius:50%;pointer-events:none}
-.anh figcaption{font-size:15px;color:var(--muc-2);margin-top:12px}
-.anh figcaption b{color:var(--muc)}
+.anh .vong{position:absolute;left:24%;top:46.5%;width:29%;aspect-ratio:1;border:2px solid var(--nen);border-radius:50%;pointer-events:none;mix-blend-mode:difference}
+.anh figcaption{font-size:14px;color:var(--mo);padding:15px;border-top:1px solid var(--net)}
+.anh figcaption b{color:var(--muc);font-weight:400}
 
-/* Công ty */
-.cty{background:var(--than);color:#fff;padding:64px 0}
-.cty-luoi{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:56px}
-.cty h2{font-size:30px;font-weight:800;letter-spacing:-.015em;margin:0 0 16px;line-height:1.15}
-.cty h3{font-size:18px;font-weight:800;margin:28px 0 8px}
+/* Công ty: dải tối — cách duy nhất hệ này "nâng" một khối lên. */
+.cty{background:var(--than);color:var(--nen);padding:66px 0}
+.cty-luoi{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:66px}
+.cty h2{font-size:26px;font-weight:200;letter-spacing:-.005em;margin:0 0 15px;line-height:1.15}
+.cty h3{font-size:17px;font-weight:300;margin:33px 0 8px;letter-spacing:.06em;text-transform:uppercase;color:var(--tren-than)}
 .cty p{margin:0 0 12px;color:var(--tren-than);max-width:60ch}
-.cty .dam{color:#fff;font-weight:600}
+.cty .dam{color:var(--nen);font-weight:300}
 .cty ul{margin:0;padding-left:20px;color:var(--tren-than)}
 .cty li{margin:0 0 4px}
-.cty li b{color:#fff;font-weight:600}
-.lien-he{display:grid;grid-template-columns:auto 1fr;gap:12px 20px;margin:0;align-content:start}
-.lien-he dt{color:var(--tren-than);font-size:16px;padding-top:2px}
-.lien-he dd{margin:0;font-weight:600}
-.lien-he a{text-decoration:none;border-bottom:2px solid var(--xanh)}
-.lien-he a:hover{color:var(--xanh)}
-.chan{font-size:14px;color:var(--tren-than);margin:56px 0 0;max-width:none}
+.cty li b{color:var(--nen);font-weight:400}
+.lien-he{display:grid;grid-template-columns:auto 1fr;gap:12px 22px;margin:0;align-content:start}
+.lien-he dt{color:var(--tren-than);font-size:14px;padding-top:3px}
+.lien-he dd{margin:0;font-weight:300}
+.lien-he a{text-decoration:none;border-bottom:1px solid var(--tren-than)}
+.lien-he a:hover{border-bottom-color:var(--nen)}
+.chan{font-size:13px;color:var(--tren-than);margin:66px 0 0;max-width:none;border-top:1px solid rgba(255,255,255,.22);padding-top:22px}
 
 [hidden]{display:none!important}
 
 @media (max-width:900px){
-  .chinh,.cty-luoi{grid-template-columns:1fr;gap:36px}
+  .chinh,.cty-luoi{grid-template-columns:1fr;gap:33px}
   .anh{max-width:420px}
 }
 @media (max-width:560px){
   .khung,.dau{padding-left:16px;padding-right:16px}
   .dau .goi span{display:none}
-  .nut{font-size:22px;padding:0 20px}
+  .nut{font-size:20px;padding:0 20px}
   .ket{padding:22px 18px}
   .hang-may{flex-wrap:wrap}
   .hang-may .nut{margin-left:0}
@@ -178,7 +176,7 @@ ol.buoc li{margin:0 0 8px}
       <img src="tai-nguyen/may-rang.jpg" alt="Máy rang cà phê OTL, màn hình cảm ứng nằm trên tủ điều khiển phía trước" width="740" height="1150">
       <span class="vong" aria-hidden="true"></span>
     </div>
-    <figcaption><b>Màn hình trong vòng xanh</b> sẽ hiện trên máy tính của bạn: xem nhiệt độ, đồ thị mẻ rang và điều khiển như đứng tại máy.</figcaption>
+    <figcaption><b>Màn hình trong vòng tròn</b> sẽ hiện trên máy tính của bạn: xem nhiệt độ, đồ thị mẻ rang và điều khiển như đứng tại máy.</figcaption>
   </figure>
 </main>
 
