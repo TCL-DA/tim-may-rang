@@ -27,7 +27,7 @@ trình duyệt mặc định. Bấm nút, phần mềm sẽ:
 
 Màn hình máy mở bằng Edge (không có thì Chrome) ở chế độ ứng dụng toàn màn hình: không thanh địa chỉ,
 không tab; F11 thu về cửa sổ, Alt+F4 đóng. Trình duyệt chạy hồ sơ riêng
-`%LOCALAPPDATA%\OTL\TimMayRang	rinh-duyet` và ghim đúng chứng chỉ tự ký của panel
+`%LOCALAPPDATA%\OTL\TimMayRang\trinh-duyet` và ghim đúng chứng chỉ tự ký của panel
 (`--ignore-certificate-errors-spki-list`, SHA-256 của khoá công khai), nên khách không gặp trang
 "kết nối không riêng tư". Icon desktop là `.lnk` mang đúng các cờ đó. Máy không có Edge/Chrome thì
 quay về `.url` mở bằng trình duyệt mặc định.
