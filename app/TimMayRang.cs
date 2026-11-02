@@ -1,8 +1,12 @@
-// OTL Tìm máy rang — dò máy rang trong mạng LAN, mở màn hình máy trên trình duyệt, tạo icon ngoài desktop.
+// OTL Tìm máy rang — dò máy rang trong mạng LAN, mở màn hình máy toàn màn hình, tạo icon ngoài desktop.
 //
-// App tự dựng một máy chủ web nhỏ chỉ nghe 127.0.0.1, mở trang index.html (nhúng trong exe) bằng trình
-// duyệt mặc định. Trang gọi /api/tim để dò; app làm phần trình duyệt bị cấm: quét cổng trong LAN,
-// mở trang có chứng chỉ tự ký, ghi file ra desktop.
+// Không có giao diện riêng. Khách dùng trang https://tcl-da.github.io/tim-may-rang/: nút "Tìm máy rang" gọi
+// otl-tim://tim, Windows chạy exe này. Exe làm phần trình duyệt bị cấm (quét LAN, ghim chứng chỉ tự ký, ghi
+// icon ra desktop) rồi:
+//   - đúng một máy sẵn sàng → mở màn hình máy toàn màn hình, xong, không mở thêm gì;
+//   - còn lại (không thấy, nhiều máy, panel chưa bật web…) → mở lại trang GitHub với #ket=… để trang báo.
+// Lần đầu khách bấm đúp exe tải về: exe tự chép vào %LOCALAPPDATA%\Programs, đăng ký otl-tim:// (HKCU,
+// không cần quyền admin) rồi tìm máy luôn.
 //
 // Viết theo C# 5 để csc có sẵn trong .NET Framework 4.x biên dịch được — máy khách không cần cài gì.
 // Build: app\build.ps1
@@ -14,42 +18,36 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Net.Security;
 using System.Runtime.InteropServices;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using Microsoft.Win32;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 
 [assembly: AssemblyTitle("OTL Tìm máy rang")]
 [assembly: AssemblyProduct("OTL Tìm máy rang")]
 [assembly: AssemblyCompany("OTL Roaster")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
 
 static class TimMayRang
 {
-    const string Ban = "1.0";
-    const int CongDau = 47830;          // cổng localhost; bận thì thử 9 cổng kế tiếp
+    const string Ban = "1.1";
+    const string GiaoThuc = "otl-tim";
+    const string TrangWeb = "https://tcl-da.github.io/tim-may-rang/";
     const int ChoNoiMs = 700;           // chờ một cổng TCP trả lời
     // Trang web client WinCC Unified: panel Unified Comfort để ở /device/WebRH (/WebRH của panel là 503
     // của Industrial Edge, đo trên MTP1200 02/11/2026); Unified PC Runtime để ở /WebRH.
     static readonly string[] DuongManHinh = { "/device/WebRH", "/WebRH" };
 
-    static int cong;
-    static DateTime lanCuoiTrang = DateTime.Now;
-    static bool trangDaMo;
-    static readonly object khoaLog = new object();
     static string thuMucApp;
-    static string thuMucThu;            // khác null khi chạy --thu
-
-    // Máy tìm được ở lượt dò gần nhất — /api/mo chỉ mở địa chỉ nằm trong đây hoặc IP khách tự nhập.
-    static readonly Dictionary<string, May> mayDaThay = new Dictionary<string, May>();
+    static string thuMucThu;            // khác null khi chạy --thu: không mở trình duyệt, icon ghi vào thư mục này
 
     class May
     {
@@ -71,7 +69,7 @@ static class TimMayRang
     {
         thuMucApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OTL", "TimMayRang");
         Directory.CreateDirectory(thuMucApp);
-        Log("Khởi động bản " + Ban);
+        Log("Khởi động bản " + Ban + " " + string.Join(" ", args));
 
         ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; // màn hình máy dùng chứng chỉ tự ký
         // Panel MTP1200 chỉ bắt tay TLS 1.3 (chỉ bật Tls12 thì mọi yêu cầu tới panel hỏng).
@@ -80,189 +78,110 @@ static class TimMayRang
         catch (NotSupportedException) { }
         ServicePointManager.DefaultConnectionLimit = 64;
 
-        if (args.Length >= 2 && args[0] == "--do")   // dò không cần trình duyệt, in kết quả ra nhật ký: --do 192.168.0.0/24
+        var ds = new List<string>(args);
+        if (ds.Count >= 2 && ds[0] == "--do")   // chỉ dò, kết quả vào nhật ký: --do 192.168.0.0/24
         {
-            DoMang(new[] { DaiTuChuoi(args[1]) }, null).Wait();
+            DoMang(new[] { DaiTuChuoi(ds[1]) }).Wait();
             return 0;
         }
-        if (args.Length >= 2 && args[0] == "--thu")  // bài thử: không mở trình duyệt, icon ghi vào thư mục cho trước, dò cả máy này
-            thuMucThu = args[1];
+        if (ds.Count >= 2 && ds[0] == "--thu") { thuMucThu = ds[1]; ds.RemoveRange(0, 2); }
 
-        TcpListener nghe = null;
-        for (int c = CongDau; c < CongDau + 10 && nghe == null; c++)
+        if (thuMucThu == null)
         {
-            try { nghe = new TcpListener(IPAddress.Loopback, c); nghe.Start(); cong = c; }
-            catch (SocketException)
-            {
-                nghe = null;
-                if (LaAppDangChay(c)) { MoTrinhDuyet("http://127.0.0.1:" + c + "/"); return 0; }
-            }
+            try { CaiDat(); } catch (Exception e) { Log("Không cài được: " + e.Message); }
+            if (ds.Count > 0 && ds[0] == "--cai") return 0;   // chỉ cài, không dò
         }
-        if (nghe == null) { Log("Không mở được cổng localhost nào"); return 1; }
-        Log("Nghe ở 127.0.0.1:" + cong);
 
-        new Thread(TuTat) { IsBackground = true }.Start();
-        MoTrinhDuyet("http://127.0.0.1:" + cong + "/");
-
-        while (true)
+        // Hai lần bấm dồn thì lần sau thôi — một lượt dò đã đủ.
+        bool moi;
+        using (var khoa = new Mutex(true, @"Local\OTL-Tim-May-Rang", out moi))
         {
-            TcpClient k = nghe.AcceptTcpClient();
-            ThreadPool.QueueUserWorkItem(delegate { PhucVu(k); });
+            if (!moi) { Log("Đang có một lượt khác, bỏ qua"); return 0; }
+            string lenh = ds.Count > 0 ? ds[0] : GiaoThuc + "://tim";
+            if (lenh.StartsWith(GiaoThuc + ":", StringComparison.OrdinalIgnoreCase)) ChayLenh(lenh);
+            else Log("Không hiểu tham số: " + lenh);
         }
+        return 0;
     }
 
-    // Trang gửi nhịp 5 giây một lần. Đóng trang 20 giây thì app tự tắt; không ai mở trang thì tắt sau 5 phút.
-    static void TuTat()
+    // otl-tim://tim          dò cả mạng
+    // otl-tim://mo/<ip>      kiểm một địa chỉ (khách tự nhập, hoặc chọn một trong nhiều máy) rồi mở
+    static void ChayLenh(string lenh)
     {
-        while (true)
-        {
-            Thread.Sleep(2000);
-            double giay = (DateTime.Now - lanCuoiTrang).TotalSeconds;
-            if ((trangDaMo && giay > 20) || (!trangDaMo && giay > 300)) { Log("Tự tắt"); Environment.Exit(0); }
-        }
+        string than = lenh.Substring(GiaoThuc.Length + 1).Trim('/', ' ');
+        string[] p = than.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+        string viec = p.Length > 0 ? p[0].ToLowerInvariant() : "tim";
+        if (viec == "mo" && p.Length > 1) Mo(Uri.UnescapeDataString(p[1]));
+        else Tim();
     }
 
-    // ── Máy chủ web nhỏ ──────────────────────────────────────────────────────────────────────────
-
-    static void PhucVu(TcpClient k)
+    static void Tim()
     {
-        try
-        {
-            using (k)
-            using (NetworkStream s = k.GetStream())
-            {
-                string dau = DocDau(s);
-                if (dau == null) return;
-                string[] dong = dau.Split(new[] { "\r\n" }, StringSplitOptions.None);
-                string[] yc = dong[0].Split(' ');
-                if (yc.Length < 2) return;
-
-                // Chặn DNS rebinding: chỉ phục vụ khi trình duyệt gọi đúng 127.0.0.1/localhost.
-                string host = dong.Skip(1).Where(d => d.StartsWith("Host:", StringComparison.OrdinalIgnoreCase))
-                    .Select(d => d.Substring(5).Trim().ToLowerInvariant()).FirstOrDefault() ?? "";
-                if (host != "127.0.0.1:" + cong && host != "localhost:" + cong) { GuiChu(s, 403, "text/plain", "Forbidden"); return; }
-
-                string duong = yc[1], hoi = "";
-                int q = duong.IndexOf('?');
-                if (q >= 0) { hoi = duong.Substring(q + 1); duong = duong.Substring(0, q); }
-                Dictionary<string, string> thamSo = TachHoi(hoi);
-
-                lanCuoiTrang = DateTime.Now;
-                switch (duong)
-                {
-                    case "/api/ten": GuiChu(s, 200, "application/json", "{\"app\":\"otl-tim-may-rang\",\"ban\":\"" + Ban + "\"}"); return;
-                    case "/api/song": trangDaMo = true; GuiChu(s, 200, "application/json", "{}"); return;
-                    case "/api/tim": Tim(s); return;
-                    case "/api/mo": Mo(s, thamSo); return;
-                    case "/api/thu": Thu(s, thamSo); return;
-                }
-                if (duong == "/") duong = "/index.html";
-                byte[] tep = TaiNguyen(duong.TrimStart('/'));
-                if (tep == null) { GuiChu(s, 404, "text/plain", "Not found"); return; }
-                GuiByte(s, 200, KieuTep(duong), tep);
-            }
-        }
-        catch (Exception e) { Log("Lỗi phục vụ: " + e.Message); }
-    }
-
-    static string DocDau(NetworkStream s)
-    {
-        var buf = new List<byte>();
-        int b;
-        while ((b = s.ReadByte()) >= 0)
-        {
-            buf.Add((byte)b);
-            int n = buf.Count;
-            if (n >= 4 && buf[n - 4] == 13 && buf[n - 3] == 10 && buf[n - 2] == 13 && buf[n - 1] == 10)
-                return Encoding.ASCII.GetString(buf.ToArray());
-            if (n > 16384) return null;
-        }
-        return null;
-    }
-
-    static Dictionary<string, string> TachHoi(string hoi)
-    {
-        var d = new Dictionary<string, string>();
-        foreach (string p in hoi.Split(new[] { '&' }, StringSplitOptions.RemoveEmptyEntries))
-        {
-            int i = p.IndexOf('=');
-            if (i > 0) d[Uri.UnescapeDataString(p.Substring(0, i))] = Uri.UnescapeDataString(p.Substring(i + 1).Replace('+', ' '));
-        }
-        return d;
-    }
-
-    static void GuiChu(Stream s, int ma, string kieu, string noiDung)
-    {
-        GuiByte(s, ma, kieu + "; charset=utf-8", Encoding.UTF8.GetBytes(noiDung));
-    }
-
-    static void GuiByte(Stream s, int ma, string kieu, byte[] noiDung)
-    {
-        string dau = "HTTP/1.1 " + ma + " " + (ma == 200 ? "OK" : "Error") + "\r\nContent-Type: " + kieu +
-            "\r\nContent-Length: " + noiDung.Length + "\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n";
-        byte[] d = Encoding.ASCII.GetBytes(dau);
-        s.Write(d, 0, d.Length);
-        s.Write(noiDung, 0, noiDung.Length);
-    }
-
-    static byte[] TaiNguyen(string ten)
-    {
-        using (Stream r = Assembly.GetExecutingAssembly().GetManifestResourceStream(ten))
-        {
-            if (r == null) return null;
-            var m = new MemoryStream();
-            r.CopyTo(m);
-            return m.ToArray();
-        }
-    }
-
-    static string KieuTep(string duong)
-    {
-        switch (Path.GetExtension(duong).ToLowerInvariant())
-        {
-            case ".html": return "text/html; charset=utf-8";
-            case ".svg": return "image/svg+xml";
-            case ".jpg": return "image/jpeg";
-            case ".png": return "image/png";
-            case ".ico": return "image/x-icon";
-            default: return "application/octet-stream";
-        }
-    }
-
-    // ── /api/tim: dò cả mạng, báo tiến độ bằng Server-Sent Events ──────────────────────────────────
-
-    static void Tim(NetworkStream s)
-    {
-        byte[] dau = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream; charset=utf-8\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n");
-        s.Write(dau, 0, dau.Length);
-        object khoa = new object();
-        Action<string, string> gui = delegate (string loai, string json)
-        {
-            byte[] d = Encoding.UTF8.GetBytes("event: " + loai + "\ndata: " + json + "\n\n");
-            lock (khoa) { try { s.Write(d, 0, d.Length); s.Flush(); } catch (IOException) { } }
-        };
-
         List<Dai> dai = LayDaiMang();
         Log("Dò " + dai.Count + " dải: " + string.Join(", ", dai.Select(x => x.Ten + " " + x.Mang)));
-        gui("mang", "{\"dai\":[" + string.Join(",", dai.Select(x => "{\"ten\":" + Js(x.Ten) + ",\"mang\":" + Js(x.Mang) + "}")) + "]}");
-        if (dai.Count == 0) { gui("het", "{\"so\":0,\"loi\":\"khong-mang\"}"); return; }
+        if (dai.Count == 0) { BaoTrang("ket=khong-mang"); return; }
 
-        List<May> thay = DoMang(dai, gui).Result;
-        lock (mayDaThay) { mayDaThay.Clear(); foreach (May m in thay) mayDaThay[m.Ip] = m; }
-
-        // Máy sẵn sàng thì tạo icon ngay, khỏi chờ khách bấm.
+        List<May> thay = DoMang(dai).Result;
         var sanSang = thay.Where(m => m.TrangThai == "san-sang").ToList();
-        var icon = new List<string>();
+        var chuaBat = thay.Where(m => m.TrangThai != "san-sang").ToList();
         foreach (May m in sanSang)
         {
-            try { icon.Add(TaoIcon(m, sanSang.Count > 1)); }
+            try { TaoIcon(m, sanSang.Count > 1); }
             catch (Exception e) { Log("Không tạo được icon: " + e.Message); }
         }
-        if (sanSang.Count == 1) MoMay(sanSang[0]);
 
-        gui("het", "{\"so\":" + thay.Count + ",\"icon\":[" + string.Join(",", icon.Select(Js)) + "],\"daMo\":" +
-            (sanSang.Count == 1 ? Js(sanSang[0].Url) : "null") + ",\"toanManHinh\":" + (TimTrinhDuyet() != null ? "true" : "false") + "}");
+        if (sanSang.Count == 1) { MoMay(sanSang[0]); return; }
+        if (sanSang.Count > 1) { BaoTrang("ket=nhieu&may=" + DanhSach(sanSang) + (chuaBat.Count > 0 ? "&chua=" + DanhSach(chuaBat) : "")); return; }
+        if (chuaBat.Count > 0) { BaoTrang("ket=chua-bat&chua=" + DanhSach(chuaBat)); return; }
+        BaoTrang("ket=khong-thay&mang=" + Uri.EscapeDataString(string.Join(", ", dai.Select(x => x.Ten + " " + x.Mang))));
     }
+
+    static void Mo(string v)
+    {
+        IPAddress ip;
+        if (!LaIpNoiBo(v, out ip)) { BaoTrang("ket=ip-sai&ip=" + Uri.EscapeDataString(v)); return; }
+        if (!CongMo(ip, 443).Result) { BaoTrang("ket=khong-tra-loi&ip=" + ip); return; }
+        May m = NhanDang(ip).Result;
+        if (m == null) { BaoTrang("ket=khong-phai-may&ip=" + ip); return; }
+        if (m.TrangThai != "san-sang") { BaoTrang("ket=chua-bat&chua=" + ip); return; }
+        try { TaoIcon(m, false); } catch (Exception e) { Log("Không tạo được icon: " + e.Message); }
+        MoMay(m);
+    }
+
+    static string DanhSach(IEnumerable<May> ds) { return string.Join(",", ds.Select(m => m.Ip)); }
+
+    static void BaoTrang(string ket)
+    {
+        Log("Báo trang: " + ket);
+        MoTrinhDuyet(TrangWeb + "#" + ket);
+    }
+
+    // ── Cài đặt: chép exe vào chỗ cố định + đăng ký otl-tim:// cho người dùng hiện tại ──────────
+
+    static void CaiDat()
+    {
+        string dich = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "OTL Tim May Rang");
+        string exeDich = Path.Combine(dich, "OTL Tim May Rang.exe");
+        string exeNay = Assembly.GetExecutingAssembly().Location;
+        if (!string.Equals(Path.GetFullPath(exeNay), Path.GetFullPath(exeDich), StringComparison.OrdinalIgnoreCase))
+        {
+            Directory.CreateDirectory(dich);
+            if (!File.Exists(exeDich) || !File.ReadAllBytes(exeDich).SequenceEqual(File.ReadAllBytes(exeNay)))
+            {
+                File.Copy(exeNay, exeDich, true);
+                Log("Đã chép phần mềm vào " + exeDich);
+            }
+        }
+        using (RegistryKey k = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + GiaoThuc))
+        {
+            k.SetValue("", "URL:OTL Tim may rang");
+            k.SetValue("URL Protocol", "");
+            using (RegistryKey i = k.CreateSubKey("DefaultIcon")) i.SetValue("", "\"" + exeDich + "\",0");
+            using (RegistryKey c = k.CreateSubKey(@"shell\open\command")) c.SetValue("", "\"" + exeDich + "\" \"%1\"");
+        }
+    }
+
+    // ── Dò mạng ──────────────────────────────────────────────────────────────────────────────────
 
     static List<Dai> LayDaiMang()
     {
@@ -311,18 +230,17 @@ static class TimMayRang
     static uint SoTuIp(IPAddress a) { byte[] b = a.GetAddressBytes(); return ((uint)b[0] << 24) | ((uint)b[1] << 16) | ((uint)b[2] << 8) | b[3]; }
     static string IpTuSo(uint v) { return (v >> 24) + "." + ((v >> 16) & 255) + "." + ((v >> 8) & 255) + "." + (v & 255); }
 
-    static async Task<List<May>> DoMang(IList<Dai> dai, Action<string, string> gui)
+    static async Task<List<May>> DoMang(IList<Dai> dai)
     {
         var thay = new List<May>();
         var hen = new SemaphoreSlim(192);
-        int tong = dai.Sum(d => d.Host.Count), xong = 0;
         var viec = new List<Task>();
         foreach (Dai d in dai)
         {
             foreach (IPAddress h in d.Host)
             {
                 await hen.WaitAsync();
-                Dai dd = d; IPAddress hh = h;
+                IPAddress hh = h;
                 viec.Add(Task.Run(async () =>
                 {
                     try
@@ -332,20 +250,13 @@ static class TimMayRang
                         if (m == null) return;
                         lock (thay) thay.Add(m);
                         Log("Thấy máy " + m.Ip + " " + m.TrangThai + " (HTTP " + m.MaHttp + ")");
-                        if (gui != null) gui("may", JsMay(m));
                     }
-                    finally
-                    {
-                        hen.Release();
-                        int n = Interlocked.Increment(ref xong);
-                        if (gui != null && (n % 8 == 0 || n == tong))
-                            gui("tien", "{\"xong\":" + n + ",\"tong\":" + tong + ",\"dai\":" + Js(dd.Ten + " " + dd.Mang) + "}");
-                    }
+                    finally { hen.Release(); }
                 }));
             }
         }
         await Task.WhenAll(viec);
-        Log("Dò xong " + tong + " địa chỉ, thấy " + thay.Count + " máy");
+        Log("Dò xong " + dai.Sum(d => d.Host.Count) + " địa chỉ, thấy " + thay.Count + " máy");
         return thay.OrderBy(m => SoTuIp(IPAddress.Parse(m.Ip))).ToList();
     }
 
@@ -421,20 +332,6 @@ static class TimMayRang
         return sb.ToString();
     }
 
-    // ── /api/thu?ip=… : khách tự nhập IP ghi trên màn hình máy ───────────────────────────────────
-
-    static void Thu(NetworkStream s, Dictionary<string, string> ts)
-    {
-        IPAddress ip;
-        string v;
-        if (!ts.TryGetValue("ip", out v) || !LaIpNoiBo(v, out ip)) { GuiChu(s, 200, "application/json", "{\"loi\":\"ip-sai\"}"); return; }
-        if (!CongMo(ip, 443).Result) { GuiChu(s, 200, "application/json", "{\"loi\":\"khong-tra-loi\"}"); return; }
-        May m = NhanDang(ip).Result;
-        if (m == null) { GuiChu(s, 200, "application/json", "{\"loi\":\"khong-phai-may\"}"); return; }
-        lock (mayDaThay) mayDaThay[m.Ip] = m;
-        GuiChu(s, 200, "application/json", JsMay(m));
-    }
-
     static bool LaIpNoiBo(string v, out IPAddress ip)
     {
         if (!IPAddress.TryParse((v ?? "").Trim(), out ip) || ip.AddressFamily != AddressFamily.InterNetwork) return false;
@@ -442,25 +339,9 @@ static class TimMayRang
         return b[0] == 10 || (b[0] == 172 && b[1] >= 16 && b[1] <= 31) || (b[0] == 192 && b[1] == 168);
     }
 
-    // ── /api/mo?ip=… : mở màn hình máy + tạo icon desktop ────────────────────────────────────────
+    // ── Icon desktop ─────────────────────────────────────────────────────────────────────────────
+    // Có Edge/Chrome thì là .lnk mở thẳng cửa sổ toàn màn hình (ThamSoManHinh); không có thì là .url.
 
-    static void Mo(NetworkStream s, Dictionary<string, string> ts)
-    {
-        string ip;
-        May m = null;
-        if (ts.TryGetValue("ip", out ip)) lock (mayDaThay) mayDaThay.TryGetValue(ip, out m);
-        if (m == null) { GuiChu(s, 200, "application/json", "{\"loi\":\"khong-co-may\"}"); return; }
-        int soMay;
-        lock (mayDaThay) soMay = mayDaThay.Values.Count(x => x.TrangThai == "san-sang");
-        string icon = null;
-        try { icon = TaoIcon(m, soMay > 1); } catch (Exception e) { Log("Không tạo được icon: " + e.Message); }
-        MoMay(m);
-        GuiChu(s, 200, "application/json", "{\"daMo\":" + Js(m.Url) + ",\"icon\":" + (icon == null ? "null" : Js(icon)) +
-            ",\"toanManHinh\":" + (TimTrinhDuyet() != null ? "true" : "false") + "}");
-    }
-
-    // Icon desktop. Có Edge/Chrome thì là .lnk mở thẳng cửa sổ toàn màn hình (ThamSoManHinh);
-    // không có thì là .url mở bằng trình duyệt mặc định.
     static string TaoIcon(May m, bool nhieuMay)
     {
         string desktop = thuMucThu ?? Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
@@ -501,6 +382,19 @@ static class TimMayRang
         return ten;
     }
 
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    static extern void SHChangeNotify(int eventId, int flags, string item1, IntPtr item2);
+
+    static byte[] TaiNguyen(string ten)
+    {
+        using (Stream r = Assembly.GetExecutingAssembly().GetManifestResourceStream(ten))
+        {
+            var m = new MemoryStream();
+            r.CopyTo(m);
+            return m.ToArray();
+        }
+    }
+
     // ── Cửa sổ màn hình máy: Edge/Chrome chế độ ứng dụng, toàn màn hình ──────────────────────────
     // Hồ sơ trình duyệt riêng (--user-data-dir) để cờ dòng lệnh luôn có hiệu lực dù trình duyệt của khách
     // đang mở, và để ghim chứng chỉ tự ký của đúng panel này (--ignore-certificate-errors-spki-list chỉ
@@ -534,7 +428,7 @@ static class TimMayRang
         if (trinhDuyet == null) { MoTrinhDuyet(m.Url); return; }
         string thamSo = ThamSoManHinh(m);
         if (thuMucThu != null) { Log("Mở màn hình máy (bài thử, bỏ qua): " + trinhDuyet + " " + thamSo); return; }
-        try { Process.Start(trinhDuyet, thamSo); }
+        try { Process.Start(trinhDuyet, thamSo); Log("Mở màn hình máy " + m.Url); }
         catch (Exception e) { Log("Không mở được " + trinhDuyet + ": " + e.Message); MoTrinhDuyet(m.Url); }
     }
 
@@ -575,22 +469,7 @@ static class TimMayRang
 
     static void BoQuaDer(byte[] d, ref int p) { int n = DocDauDer(d, ref p); p += n; }
 
-    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-    static extern void SHChangeNotify(int eventId, int flags, string item1, IntPtr item2);
-
     // ── Tiện ích ─────────────────────────────────────────────────────────────────────────────────
-
-    static bool LaAppDangChay(int c)
-    {
-        try
-        {
-            var r = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + c + "/api/ten");
-            r.Timeout = 1500;
-            using (var p = (HttpWebResponse)r.GetResponse())
-            using (var sr = new StreamReader(p.GetResponseStream())) return sr.ReadToEnd().Contains("otl-tim-may-rang");
-        }
-        catch { return false; }
-    }
 
     static void MoTrinhDuyet(string url)
     {
@@ -599,22 +478,7 @@ static class TimMayRang
         catch (Exception e) { Log("Không mở được trình duyệt: " + e.Message); }
     }
 
-    static string JsMay(May m)
-    {
-        return "{\"ip\":" + Js(m.Ip) + ",\"url\":" + Js(m.Url) + ",\"trangThai\":" + Js(m.TrangThai) + ",\"maHttp\":" + m.MaHttp + "}";
-    }
-
-    static string Js(string v)
-    {
-        var sb = new StringBuilder("\"");
-        foreach (char c in v)
-        {
-            if (c == '"' || c == '\\') sb.Append('\\').Append(c);
-            else if (c < 32) sb.Append("\\u").Append(((int)c).ToString("x4"));
-            else sb.Append(c);
-        }
-        return sb.Append('"').ToString();
-    }
+    static readonly object khoaLog = new object();
 
     static void Log(string dong)
     {

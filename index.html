@@ -136,38 +136,31 @@ ol.buoc li{margin:0 0 8px}
     <p class="mo-dau">Bấm một nút. Phần mềm tự tìm máy rang OTL trong mạng của quán, mở màn hình điều khiển
       lên trình duyệt, rồi để lại icon <b>Máy rang OTL</b> ngoài desktop cho những lần sau.</p>
 
-    <!-- Chạy trong phần mềm: dò thật -->
-    <div id="cheDoApp" hidden>
-      <button id="nutTim" class="nut lon" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <span id="chuNut">Tìm máy rang</span>
-      </button>
-      <p class="ghi-nut" id="ghiNut">Máy tính cần nối cùng Wi-Fi hoặc cùng dây mạng với máy rang.</p>
+    <!-- Nút gọi phần mềm OTL đã cài qua otl-tim:// — trình duyệt không được tự dò mạng trong quán. -->
+    <a id="nutTim" class="nut lon" href="otl-tim://tim">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <span>Tìm máy rang</span>
+    </a>
+    <p class="ghi-nut">Máy tính cần nối cùng Wi-Fi hoặc cùng dây mạng với máy rang. Trình duyệt hỏi mở <b>OTL Tim may rang</b> thì tích <b>Luôn cho phép</b> rồi bấm <b>Mở</b>.</p>
 
-      <div class="rang" id="rang" hidden>
-        <div class="rang-ray" id="rangRay" role="progressbar" aria-label="Tiến độ dò" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="rangThanh"></i></div>
-        <p class="rang-chu" id="rangChu" role="status">Đang chuẩn bị…</p>
-      </div>
-
-      <div id="ketQua" aria-live="polite"></div>
+    <div class="rang" id="rang" hidden>
+      <div class="rang-ray" id="rangRay" role="progressbar" aria-label="Tiến độ dò" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="rangThanh"></i></div>
+      <p class="rang-chu" id="rangChu" role="status"></p>
     </div>
 
-    <!-- Mở từ trang tải: trình duyệt không được quét mạng nên phải tải phần mềm -->
-    <div id="cheDoWeb">
-      <a class="nut lon" href="OTL-Tim-May-Rang-v1.0.zip" download>
+    <div id="ketQua" aria-live="polite"></div>
+
+    <div class="ket trang" id="lanDau">
+      <h2>Lần đầu trên máy tính này</h2>
+      <ol class="buoc">
+        <li>Tải phần mềm, bấm chuột phải vào tệp zip, chọn <b>Giải nén tất cả</b>.</li>
+        <li>Bấm đúp <b>OTL Tim May Rang</b>. Windows hỏi thì bấm <b>Thông tin thêm</b> rồi <b>Vẫn chạy</b>.</li>
+        <li>Phần mềm tự cài và tìm máy luôn. Từ lần sau chỉ cần bấm <b>Tìm máy rang</b> ở trên, hoặc bấm đúp icon <b>Máy rang OTL</b> ngoài desktop.</li>
+      </ol>
+      <a class="nut nho" href="OTL-Tim-May-Rang.zip" download style="margin-top:15px">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
-        <span>Tải phần mềm</span>
+        Tải phần mềm cho Windows
       </a>
-      <p class="ghi-nut">Cho Windows 10 và 11. Không cần cài đặt.</p>
-      <div class="ket trang">
-        <h2>Ba bước, làm một lần</h2>
-        <ol class="buoc">
-          <li>Tải về, bấm chuột phải vào tệp zip, chọn <b>Giải nén tất cả</b>.</li>
-          <li>Bấm đúp <b>OTL Tim May Rang</b>. Windows hỏi thì bấm <b>Thông tin thêm</b> rồi <b>Vẫn chạy</b>.</li>
-          <li>Bấm <b>Tìm máy rang</b>. Màn hình máy tự mở, icon <b>Máy rang OTL</b> hiện ngoài desktop.</li>
-        </ol>
-        <p style="margin:14px 0 0">Trình duyệt không được phép tự dò mạng trong quán, nên việc tìm máy do phần mềm nhỏ này làm.</p>
-      </div>
     </div>
   </div>
 
@@ -218,7 +211,7 @@ ol.buoc li{margin:0 0 8px}
         </dl>
       </div>
     </div>
-    <p class="chan">Tìm máy rang OTL, bản 1.0. Phần mềm chỉ dò trong mạng nội bộ của quán và không gửi dữ liệu ra ngoài.</p>
+    <p class="chan">Tìm máy rang OTL, bản 1.1. Phần mềm chỉ dò trong mạng nội bộ của quán và không gửi dữ liệu ra ngoài.</p>
   </div>
 </section>
 
@@ -227,131 +220,101 @@ ol.buoc li{margin:0 0 8px}
   var $ = function (id) { return document.getElementById(id); };
   var ICON_XONG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
   var ICON_MO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
-  var CHUNG_CHI = '<h3>Trình duyệt báo “Kết nối không riêng tư”?</h3>' +
-    '<p class="phu">Máy rang dùng chứng chỉ riêng trong mạng nội bộ của quán, không phải lỗi. Chỉ làm một lần:</p>' +
-    '<ol class="buoc phu"><li>Bấm <b>Nâng cao</b>.</li><li>Bấm <b>Tiếp tục truy cập</b> địa chỉ của máy.</li><li>Đăng nhập bằng tài khoản OTL giao kèm máy.</li></ol>';
   var TOAN_MAN_HINH = '<h3>Màn hình máy chiếm trọn màn hình</h3>' +
     '<p class="phu">Đăng nhập bằng tài khoản OTL giao kèm máy. Nhấn <b>F11</b> để thu về cửa sổ, <b>Alt + F4</b> để đóng.</p>';
+  var LOI_IP = {
+    'ip-sai': 'Địa chỉ phải có dạng 192.168.x.x, 10.x.x.x hoặc 172.16.x.x tới 172.31.x.x.',
+    'khong-tra-loi': ' không trả lời. Kiểm lại số trên màn hình máy và dây mạng.',
+    'khong-phai-may': ' có trả lời nhưng không phải màn hình máy rang. Kiểm lại số trên màn hình máy.'
+  };
 
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function json(url) { return fetch(url, { cache: 'no-store' }).then(function (r) { return r.json(); }); }
-
-  // Phần mềm trả lời api/ten thì trang đang chạy trong phần mềm; ở trang tải thì 404, giữ nút Tải.
-  fetch('api/ten', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
-    if (!j || j.app !== 'otl-tim-may-rang') return;
-    $('cheDoWeb').hidden = true;
-    $('cheDoApp').hidden = false;
-    var song = function () { fetch('api/song', { cache: 'no-store' }).catch(function () {}); };
-    song(); setInterval(song, 5000);
-    $('nutTim').addEventListener('click', tim);
-    $('nutTim').focus();
-  }).catch(function () {});
-
-  var may = [];
-
-  function tim() {
-    may = [];
-    $('ketQua').innerHTML = '';
-    $('nutTim').disabled = true;
-    $('chuNut').textContent = 'Đang tìm…';
-    $('ghiNut').hidden = true;
-    $('rang').hidden = false;
-    datTien(0, 'Đang xem máy tính này nối những mạng nào…');
-
-    var es = new EventSource('api/tim');
-    var xong = false;
-    es.addEventListener('mang', function (e) {
-      var d = JSON.parse(e.data).dai;
-      if (d.length) datTien(1, 'Đang dò ' + d.map(function (x) { return x.ten + ' ' + x.mang; }).join(' và ') + '…');
-    });
-    es.addEventListener('tien', function (e) {
-      var d = JSON.parse(e.data);
-      datTien(Math.round(d.xong * 100 / d.tong), 'Đang dò ' + d.dai + ': đã thử ' + d.xong + ' trên ' + d.tong + ' địa chỉ' +
-        (may.length ? ', thấy ' + may.length + ' máy' : ''));
-    });
-    es.addEventListener('may', function (e) { may.push(JSON.parse(e.data)); });
-    es.addEventListener('het', function (e) {
-      xong = true; es.close();
-      var d = JSON.parse(e.data);
-      datTien(100, d.loi === 'khong-mang' ? 'Máy tính này chưa nối mạng nào.' : 'Đã dò xong.');
-      ketThuc(d);
-    });
-    es.onerror = function () {
-      if (xong) return;
-      es.close();
-      ketThuc({ loi: 'mat-app' });
-    };
+  function laIpNoiBo(v) {
+    var m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(v);
+    if (!m || m.slice(1).some(function (x) { return +x > 255; })) return false;
+    var a = +m[1], b = +m[2];
+    return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
   }
 
+  // Bấm nút: trình duyệt chuyển otl-tim://tim cho Windows, phần mềm đã cài làm việc dò.
+  // Trang không nhận được kết quả trực tiếp: thấy đúng một máy thì phần mềm mở luôn màn hình máy;
+  // trường hợp khác nó mở lại trang này với #ket=… (xem hienKetQua).
+  var hen = [];
+  $('nutTim').addEventListener('click', function () {
+    hen.forEach(clearTimeout); hen = [];
+    $('ketQua').innerHTML = '';
+    $('rang').hidden = false;
+    datTien(0, 'Đang gọi phần mềm OTL trên máy tính này…');
+    hen.push(setTimeout(function () { datTien(85, 'Phần mềm đang dò mạng của quán. Màn hình máy sẽ tự mở toàn màn hình.'); }, 300));
+    hen.push(setTimeout(function () {
+      datTien(100, 'Màn hình máy mở trong cửa sổ riêng. Không thấy cửa sổ nào và không có thông báo? Máy tính này chưa có phần mềm: làm theo mục Lần đầu bên dưới.');
+      $('lanDau').hidden = false;
+    }, 15000));
+  });
+
   function datTien(phan, chu) {
+    $('rangThanh').style.transition = phan === 85 ? 'width 10s linear' : '';
     $('rangThanh').style.width = phan + '%';
     $('rangRay').setAttribute('aria-valuenow', phan);
     $('rangChu').textContent = chu;
   }
 
-  function ketThuc(d) {
-    $('nutTim').disabled = false;
-    $('chuNut').textContent = 'Tìm lại';
-    var sanSang = may.filter(function (m) { return m.trangThai === 'san-sang'; });
-    var chuaBat = may.filter(function (m) { return m.trangThai !== 'san-sang'; });
+  function oNhap(tieuDe, ghi, ip, loi) {
+    return '<div class="ket trang"><h2>' + tieuDe + '</h2>' + (ghi || '') +
+      '<p>Biết địa chỉ IP ghi trên màn hình máy thì nhập vào đây:</p>' +
+      '<div class="nhap"><input id="oIp" inputmode="decimal" placeholder="192.168.0.20" autocomplete="off" aria-label="Địa chỉ IP của máy rang" value="' + esc(ip || '') + '">' +
+      '<button class="nut nho" type="button" id="nutThu">Mở máy này</button></div>' +
+      '<p class="loi-nho" id="loiIp"' + (loi ? '' : ' hidden') + '>' + esc(loi || '') + '</p></div>';
+  }
+
+  // Phần mềm báo kết quả qua #ket=…&may=…&chua=…&ip=…&mang=…
+  function hienKetQua() {
+    var q = new URLSearchParams(location.hash.slice(1));
+    var ket = q.get('ket');
+    if (!ket) return;
+    var ds = function (k) { return (q.get(k) || '').split(',').filter(Boolean); };
+    var may = ds('may'), chua = ds('chua'), ip = q.get('ip') || '';
     var h = '';
-    if (d.loi === 'mat-app') {
-      h = '<div class="ket vang"><h2>Phần mềm đã tắt</h2><p>Bấm đúp lại <b>OTL Tim May Rang</b> rồi bấm Tìm máy rang.</p></div>';
-    } else if (sanSang.length === 1) {
-      var m = sanSang[0];
-      h = '<div class="ket tot"><h2>Đã mở màn hình máy rang</h2><ul>' +
-        '<li>' + ICON_XONG + '<span>Máy rang ở địa chỉ <b>' + esc(m.ip) + '</b>.</span></li>' +
-        '<li>' + ICON_XONG + '<span>' + (d.toanManHinh ? 'Màn hình máy đã mở toàn màn hình.' : 'Màn hình máy đã mở trong một thẻ trình duyệt mới.') + '</span></li>' +
-        (d.icon && d.icon.length ? '<li>' + ICON_XONG + '<span>Đã tạo icon <b>' + esc(d.icon[0]) + '</b> ngoài desktop. Lần sau bấm đúp icon đó là vào thẳng.</span></li>' : '') +
-        '</ul><button class="nut nho" type="button" data-ip="' + esc(m.ip) + '">' + ICON_MO + 'Mở lại màn hình máy</button>' + (d.toanManHinh ? TOAN_MAN_HINH : CHUNG_CHI) + '</div>';
-    } else if (sanSang.length > 1) {
-      h = '<div class="ket tot"><h2>Tìm thấy ' + sanSang.length + ' máy rang</h2>' +
+    if (ket === 'nhieu') {
+      h = '<div class="ket tot"><h2>Tìm thấy ' + may.length + ' máy rang</h2>' +
         '<p class="phu">Mỗi máy đã có một icon riêng ngoài desktop, ghi kèm địa chỉ. Chọn máy muốn mở:</p>' +
-        sanSang.map(function (m) {
-          return '<div class="hang-may"><b>' + esc(m.ip) + '</b><button class="nut nho" type="button" data-ip="' + esc(m.ip) + '">' + ICON_MO + 'Mở máy này</button></div>';
-        }).join('') + (d.toanManHinh ? TOAN_MAN_HINH : CHUNG_CHI) + '</div>';
+        may.map(function (m) {
+          return '<div class="hang-may"><b>' + esc(m) + '</b><a class="nut nho" href="otl-tim://mo/' + encodeURIComponent(m) + '">' + ICON_MO + 'Mở máy này</a></div>';
+        }).join('') + TOAN_MAN_HINH + '</div>';
     }
-    if (chuaBat.length) {
+    if (chua.length) {
       h += '<div class="ket vang"><h2>Thấy màn hình máy nhưng chưa xem từ máy tính được</h2>' +
-        '<p>Màn hình ở địa chỉ <b>' + chuaBat.map(function (m) { return esc(m.ip); }).join(', ') + '</b> chưa bật chế độ xem từ máy tính. ' +
+        '<p>Màn hình ở địa chỉ <b>' + chua.map(esc).join(', ') + '</b> chưa bật chế độ xem từ máy tính. ' +
         'Gọi OTL <a href="tel:+84936198938"><b>0936 198 938</b></a> để kỹ thuật bật giúp.</p></div>';
     }
-    if (!sanSang.length && d.loi !== 'mat-app') {
-      h += '<div class="ket trang"><h2>' + (chuaBat.length ? 'Hoặc nhập địa chỉ máy khác' : 'Chưa thấy máy rang nào') + '</h2>' +
-        (chuaBat.length ? '' : '<ul>' +
-          '<li>' + ICON_XONG + '<span>Máy rang đã bật nguồn, màn hình đã sáng.</span></li>' +
-          '<li>' + ICON_XONG + '<span>Máy tính nối cùng Wi-Fi hoặc cùng bộ phát với máy rang.</span></li>' +
-          '<li>' + ICON_XONG + '<span>Dây mạng ở tủ điện máy rang cắm chặt.</span></li></ul>') +
-        '<p>Biết địa chỉ IP ghi trên màn hình máy thì nhập vào đây:</p>' +
-        '<div class="nhap"><input id="oIp" inputmode="decimal" placeholder="192.168.0.20" autocomplete="off" aria-label="Địa chỉ IP của máy rang">' +
-        '<button class="nut nho" type="button" id="nutThu">Mở máy này</button></div><p class="loi-nho" id="loiIp" hidden></p></div>';
+    if (ket === 'chua-bat') h += oNhap('Hoặc nhập địa chỉ máy khác');
+    if (ket === 'khong-thay') {
+      h += oNhap('Chưa thấy máy rang nào', '<ul>' +
+        '<li>' + ICON_XONG + '<span>Máy rang đã bật nguồn, màn hình đã sáng.</span></li>' +
+        '<li>' + ICON_XONG + '<span>Máy tính nối cùng Wi-Fi hoặc cùng bộ phát với máy rang.</span></li>' +
+        '<li>' + ICON_XONG + '<span>Dây mạng ở tủ điện máy rang cắm chặt.</span></li></ul>' +
+        (q.get('mang') ? '<p class="phu">Đã dò: ' + esc(q.get('mang')) + '.</p>' : ''));
     }
+    if (ket === 'khong-mang') h += oNhap('Máy tính này chưa nối mạng nào', '<p>Nối Wi-Fi hoặc cắm dây mạng cùng bộ phát với máy rang rồi bấm Tìm máy rang lại.</p>');
+    if (LOI_IP[ket]) h += oNhap('Chưa mở được máy', '', ip, ket === 'ip-sai' ? LOI_IP[ket] : 'Địa chỉ ' + ip + LOI_IP[ket]);
     $('ketQua').innerHTML = h;
+    $('lanDau').hidden = true;   // phần mềm đã chạy được trên máy này
     if ($('nutThu')) {
       $('nutThu').addEventListener('click', thuIp);
       $('oIp').addEventListener('keydown', function (e) { if (e.key === 'Enter') thuIp(); });
     }
   }
 
-  // Một bộ nghe cho mọi nút "Mở" trong khối kết quả.
-  document.addEventListener('click', function (e) {
-    var b = e.target.closest && e.target.closest('button[data-ip]');
-    if (b) fetch('api/mo?ip=' + encodeURIComponent(b.getAttribute('data-ip')), { cache: 'no-store' });
-  });
-
   function thuIp() {
     var ip = $('oIp').value.trim(), loi = $('loiIp');
     loi.hidden = true;
     if (!ip) { loi.textContent = 'Gõ địa chỉ IP ghi trên màn hình máy vào ô, ví dụ 192.168.0.20.'; loi.hidden = false; $('oIp').focus(); return; }
-    json('api/thu?ip=' + encodeURIComponent(ip)).then(function (m) {
-      if (m.loi === 'ip-sai') { loi.textContent = 'Địa chỉ phải có dạng 192.168.x.x, 10.x.x.x hoặc 172.16.x.x tới 172.31.x.x.'; loi.hidden = false; return; }
-      if (m.loi === 'khong-phai-may') { loi.textContent = 'Địa chỉ ' + ip + ' có trả lời nhưng không phải màn hình máy rang. Kiểm lại số trên màn hình máy.'; loi.hidden = false; return; }
-      if (m.loi) { loi.textContent = 'Địa chỉ ' + ip + ' không trả lời. Kiểm lại số trên màn hình máy và dây mạng.'; loi.hidden = false; return; }
-      may = [m];
-      if (m.trangThai !== 'san-sang') { ketThuc({}); return; }
-      return json('api/mo?ip=' + encodeURIComponent(m.ip)).then(function (k) { ketThuc({ icon: k.icon ? [k.icon] : [], toanManHinh: k.toanManHinh }); });
-    }).catch(function () { loi.textContent = 'Phần mềm đã tắt. Bấm đúp lại OTL Tim May Rang.'; loi.hidden = false; });
+    if (!laIpNoiBo(ip)) { loi.textContent = LOI_IP['ip-sai']; loi.hidden = false; $('oIp').focus(); return; }
+    location.href = 'otl-tim://mo/' + encodeURIComponent(ip);
   }
+
+  hienKetQua();
+  window.addEventListener('hashchange', hienKetQua);
 })();
 </script>
 </body>

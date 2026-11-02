@@ -1,15 +1,15 @@
-OTL TÌM MÁY RANG — bản 1.0
+OTL TÌM MÁY RANG
 
 1. Nối máy tính vào cùng mạng với máy rang (cùng Wi-Fi hoặc cắm dây mạng vào cùng bộ phát).
-2. Bấm đúp "OTL Tim May Rang.exe". Trình duyệt tự mở trang Tìm máy rang.
-3. Bấm nút "Tìm máy rang". Phần mềm tự dò, tự mở màn hình máy và tạo icon
-   "Máy rang OTL" ngoài màn hình desktop.
-4. Lần sau chỉ cần bấm đúp icon "Máy rang OTL".
+2. Bấm đúp "OTL Tim May Rang.exe" MỘT LẦN. Phần mềm tự cài cho máy tính này rồi tìm máy rang luôn:
+   màn hình máy mở toàn màn hình, icon "Máy rang OTL" hiện ngoài desktop.
+3. Lần sau: bấm đúp icon "Máy rang OTL", hoặc bấm "Tìm máy rang" trên trang
+   https://tcl-da.github.io/tim-may-rang/
 
 Nếu Windows hiện "Windows đã bảo vệ máy tính của bạn": bấm "Thông tin thêm" rồi "Vẫn chạy".
+Trình duyệt hỏi "Mở OTL Tim may rang?": tích "Luôn cho phép" rồi bấm "Mở".
 
-Lần đầu mở màn hình máy, trình duyệt có thể báo "Kết nối không riêng tư" vì máy rang dùng
-chứng chỉ riêng trong mạng nội bộ. Bấm "Nâng cao" rồi "Tiếp tục truy cập ...". Chỉ làm một lần.
+Màn hình máy: F11 để thu về cửa sổ, Alt + F4 để đóng.
 
 Không tìm thấy máy: gọi OTL 0936 198 938 và gửi kèm tệp nhật ký
 %LOCALAPPDATA%\OTL\TimMayRang\nhat-ky.txt

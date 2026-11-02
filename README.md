@@ -2,24 +2,37 @@
 
 # **https://tcl-da.github.io/tim-may-rang/**
 
-<a href="https://tcl-da.github.io/tim-may-rang/OTL-Tim-May-Rang-v1.0.zip"><img src="tai-nguyen/nut-tai-phan-mem.svg" alt="Tải phần mềm" width="560"></a>
+<a href="https://tcl-da.github.io/tim-may-rang/OTL-Tim-May-Rang.zip"><img src="tai-nguyen/nut-tai-phan-mem.svg" alt="Tải phần mềm" width="560"></a>
 
 ---
 
 ## tìm máy rang otl
 
-Phần mềm nhỏ cho khách của OTL: bấm **Tìm máy rang**, phần mềm tự dò máy rang trong mạng của quán, mở
-màn hình điều khiển của máy lên trình duyệt, rồi tạo icon **Máy rang OTL** ngoài desktop. Lần sau khách
-chỉ cần bấm đúp icon đó.
+Trang web cho khách của OTL: bấm **Tìm máy rang**, phần mềm OTL trên máy tính tự dò máy rang trong mạng
+của quán, mở màn hình điều khiển của máy toàn màn hình, rồi tạo icon **Máy rang OTL** ngoài desktop. Lần
+sau khách chỉ cần bấm đúp icon đó.
 
-Windows 10/11, không cần cài đặt.
+Windows 10/11. Lần đầu tải phần mềm và bấm đúp một lần: nó tự cài cho người dùng hiện tại (không cần
+quyền admin) và tìm máy luôn.
 
 ---
 
 ## cách chạy
 
-`OTL Tim May Rang.exe` dựng một máy chủ web nhỏ chỉ nghe `127.0.0.1:47830` rồi mở `index.html` bằng
-trình duyệt mặc định. Bấm nút, phần mềm sẽ:
+Trình duyệt không được tự quét mạng trong quán, nên nút trên trang gọi phần mềm đã cài qua giao thức
+`otl-tim://`. Không có trang web nội bộ nào.
+
+| Gọi | Việc |
+|---|---|
+| bấm đúp exe tải về | chép vào `%LOCALAPPDATA%\Programs\OTL Tim May Rang`, đăng ký `otl-tim://` ở `HKCU\Software\Classes`, rồi dò như `otl-tim://tim` |
+| `otl-tim://tim` | dò cả mạng |
+| `otl-tim://mo/<ip>` | kiểm một địa chỉ (khách tự nhập, hoặc chọn một trong nhiều máy) rồi mở |
+
+Đúng một máy sẵn sàng thì phần mềm mở luôn màn hình máy, không mở thêm gì. Các trường hợp còn lại nó
+mở lại trang với `#ket=…` để trang báo: `nhieu` (kèm `may=`), `chua-bat` (`chua=`), `khong-thay`
+(`mang=`), `khong-mang`, `ip-sai` / `khong-tra-loi` / `khong-phai-may` (`ip=`).
+
+Khi dò, phần mềm:
 
 1. Lấy các mạng đang nối (Wi-Fi, mạng dây). Bỏ qua card VPN, ảo, Bluetooth. Mạng rộng hơn /22 thì chỉ
    dò /24 quanh máy tính.
@@ -43,12 +56,9 @@ không tab; F11 thu về cửa sổ, Alt+F4 đóng. Trình duyệt chạy hồ s
 quay về `.url` mở bằng trình duyệt mặc định.
 
 Không thấy máy thì khách nhập IP ghi trên màn hình máy. Phần mềm chỉ nhận IP mạng nội bộ và chỉ mở
-địa chỉ đã nhận dạng là màn hình máy rang.
+địa chỉ đã nhận dạng là màn hình máy rang. Hai lần bấm dồn thì lần sau bỏ qua (mutex).
 
-Đóng trang 20 giây thì phần mềm tự tắt. Nhật ký ghi ở `%LOCALAPPDATA%\OTL\TimMayRang\nhat-ky.txt`.
-
-Cùng một `index.html` chạy được ở hai chỗ: trong phần mềm thì hiện nút **Tìm máy rang**, còn mở trên
-trang web (trình duyệt không được quét mạng) thì hiện nút **Tải phần mềm**.
+Nhật ký ghi ở `%LOCALAPPDATA%\OTL\TimMayRang\nhat-ky.txt`.
 
 ---
 
@@ -67,19 +77,20 @@ với panel MTP1200 trên máy OTL-30 (02/11/2026): dò ra, mở `https://<ip>/d
 powershell -ExecutionPolicy Bypass -File app\build.ps1
 ```
 
-Dùng `csc` có sẵn trong .NET Framework 4.x (mã C# 5), nhúng `index.html` và `tai-nguyen/` vào exe,
-rồi đóng gói `OTL-Tim-May-Rang-v1.0.zip` ở gốc repo.
+Dùng `csc` có sẵn trong .NET Framework 4.x (mã C# 5), rồi đóng gói `OTL-Tim-May-Rang.zip` ở gốc repo
+(tên không mang số bản để link tải không phải đổi).
 
-Thử mà không mở trình duyệt, không ghi lên desktop thật:
+Thử mà không cài, không mở trình duyệt, không ghi lên desktop thật (kết quả xem trong nhật ký):
 
 ```powershell
-& "app\build\OTL-Tim-May-Rang-v1.0\OTL Tim May Rang.exe" --thu C:\tam\icon   # icon ghi vào thư mục này
-& "app\build\OTL-Tim-May-Rang-v1.0\OTL Tim May Rang.exe" --do 192.168.0.0/24  # chỉ dò, kết quả vào nhật ký
+& "app\build\OTL-Tim-May-Rang\OTL Tim May Rang.exe" --thu C:\tam\icon otl-tim://tim          # dò cả máy này
+& "app\build\OTL-Tim-May-Rang\OTL Tim May Rang.exe" --thu C:\tam\icon otl-tim://mo/192.168.0.20
+& "app\build\OTL-Tim-May-Rang\OTL Tim May Rang.exe" --do 192.168.0.0/24                      # chỉ dò
 ```
 
 | Tệp | Việc |
 |---|---|
-| `index.html` | Giao diện (một tệp, không thư viện ngoài, chỉ tải font Be Vietnam Pro) |
-| `app/TimMayRang.cs` | Máy chủ localhost, dò mạng, nhận dạng panel, tạo icon |
+| `index.html` | Trang web (một tệp, không thư viện ngoài, chỉ tải font Be Vietnam Pro) |
+| `app/TimMayRang.cs` | Tự cài + `otl-tim://`, dò mạng, nhận dạng panel, mở toàn màn hình, tạo icon |
 | `app/build.ps1` | Build exe + đóng gói zip |
-| `tai-nguyen/` | Logo, ảnh máy, icon dùng chung cho trang và exe |
+| `tai-nguyen/` | Logo, ảnh máy, icon của trang |
