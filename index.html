@@ -232,6 +232,8 @@ ol.buoc li{margin:0 0 8px}
   var CHUNG_CHI = '<h3>Trình duyệt báo “Kết nối không riêng tư”?</h3>' +
     '<p class="phu">Máy rang dùng chứng chỉ riêng trong mạng nội bộ của quán, không phải lỗi. Chỉ làm một lần:</p>' +
     '<ol class="buoc phu"><li>Bấm <b>Nâng cao</b>.</li><li>Bấm <b>Tiếp tục truy cập</b> địa chỉ của máy.</li><li>Đăng nhập bằng tài khoản OTL giao kèm máy.</li></ol>';
+  var TOAN_MAN_HINH = '<h3>Màn hình máy chiếm trọn màn hình</h3>' +
+    '<p class="phu">Đăng nhập bằng tài khoản OTL giao kèm máy. Nhấn <b>F11</b> để thu về cửa sổ, <b>Alt + F4</b> để đóng.</p>';
 
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function json(url) { return fetch(url, { cache: 'no-store' }).then(function (r) { return r.json(); }); }
@@ -301,15 +303,15 @@ ol.buoc li{margin:0 0 8px}
       var m = sanSang[0];
       h = '<div class="ket tot"><h2>Đã mở màn hình máy rang</h2><ul>' +
         '<li>' + ICON_XONG + '<span>Máy rang ở địa chỉ <b>' + esc(m.ip) + '</b>.</span></li>' +
-        '<li>' + ICON_XONG + '<span>Màn hình máy đã mở trong một thẻ trình duyệt mới.</span></li>' +
+        '<li>' + ICON_XONG + '<span>' + (d.toanManHinh ? 'Màn hình máy đã mở toàn màn hình.' : 'Màn hình máy đã mở trong một thẻ trình duyệt mới.') + '</span></li>' +
         (d.icon && d.icon.length ? '<li>' + ICON_XONG + '<span>Đã tạo icon <b>' + esc(d.icon[0]) + '</b> ngoài desktop. Lần sau bấm đúp icon đó là vào thẳng.</span></li>' : '') +
-        '</ul><button class="nut nho" type="button" data-ip="' + esc(m.ip) + '">' + ICON_MO + 'Mở lại màn hình máy</button>' + CHUNG_CHI + '</div>';
+        '</ul><button class="nut nho" type="button" data-ip="' + esc(m.ip) + '">' + ICON_MO + 'Mở lại màn hình máy</button>' + (d.toanManHinh ? TOAN_MAN_HINH : CHUNG_CHI) + '</div>';
     } else if (sanSang.length > 1) {
       h = '<div class="ket tot"><h2>Tìm thấy ' + sanSang.length + ' máy rang</h2>' +
         '<p class="phu">Mỗi máy đã có một icon riêng ngoài desktop, ghi kèm địa chỉ. Chọn máy muốn mở:</p>' +
         sanSang.map(function (m) {
           return '<div class="hang-may"><b>' + esc(m.ip) + '</b><button class="nut nho" type="button" data-ip="' + esc(m.ip) + '">' + ICON_MO + 'Mở máy này</button></div>';
-        }).join('') + CHUNG_CHI + '</div>';
+        }).join('') + (d.toanManHinh ? TOAN_MAN_HINH : CHUNG_CHI) + '</div>';
     }
     if (chuaBat.length) {
       h += '<div class="ket vang"><h2>Thấy màn hình máy nhưng chưa xem từ máy tính được</h2>' +
@@ -349,7 +351,7 @@ ol.buoc li{margin:0 0 8px}
       if (m.loi) { loi.textContent = 'Địa chỉ ' + ip + ' không trả lời. Kiểm lại số trên màn hình máy và dây mạng.'; loi.hidden = false; return; }
       may = [m];
       if (m.trangThai !== 'san-sang') { ketThuc({}); return; }
-      return json('api/mo?ip=' + encodeURIComponent(m.ip)).then(function (k) { ketThuc({ icon: k.icon ? [k.icon] : [] }); });
+      return json('api/mo?ip=' + encodeURIComponent(m.ip)).then(function (k) { ketThuc({ icon: k.icon ? [k.icon] : [], toanManHinh: k.toanManHinh }); });
     }).catch(function () { loi.textContent = 'Phần mềm đã tắt. Bấm đúp lại OTL Tim May Rang.'; loi.hidden = false; });
   }
 })();

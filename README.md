@@ -22,8 +22,15 @@ trình duyệt mặc định. Bấm nút, phần mềm sẽ:
 
    Đường nào trả trang `WinCC Unified RT` thì máy **sẵn sàng**. Không đường nào ra mà cổng S7 102 và
    VNC 5900 đều mở thì panel chưa bật Web client, trang báo khách gọi kỹ thuật.
-4. Có đúng một máy sẵn sàng thì mở trang đó và tạo `Máy rang OTL.url` ngoài desktop. Có
+4. Có đúng một máy sẵn sàng thì mở trang đó và tạo icon `Máy rang OTL` ngoài desktop. Có
    nhiều máy thì mỗi máy một icon `Máy rang OTL (<ip>)` và khách chọn máy cần mở.
+
+Màn hình máy mở bằng Edge (không có thì Chrome) ở chế độ ứng dụng toàn màn hình: không thanh địa chỉ,
+không tab; F11 thu về cửa sổ, Alt+F4 đóng. Trình duyệt chạy hồ sơ riêng
+`%LOCALAPPDATA%\OTL\TimMayRang	rinh-duyet` và ghim đúng chứng chỉ tự ký của panel
+(`--ignore-certificate-errors-spki-list`, SHA-256 của khoá công khai), nên khách không gặp trang
+"kết nối không riêng tư". Icon desktop là `.lnk` mang đúng các cờ đó. Máy không có Edge/Chrome thì
+quay về `.url` mở bằng trình duyệt mặc định.
 
 Không thấy máy thì khách nhập IP ghi trên màn hình máy. Phần mềm chỉ nhận IP mạng nội bộ và chỉ mở
 địa chỉ đã nhận dạng là màn hình máy rang.
@@ -35,7 +42,9 @@ GitHub Pages (trình duyệt không được quét mạng) thì hiện nút **T�
 
 ## Máy rang cần gì
 
-Project WinCC Unified của panel phải bật **Web client** và có tài khoản đăng nhập web cho khách. Đã thử
+Project WinCC Unified của panel phải bật **Web client** và có tài khoản đăng nhập web cho khách.
+Muốn màn hình giãn kín cửa sổ trình duyệt, màn hình gốc chạy `HMIRuntime.UI.RootWindow.Adaption = 2;`
+(ScreenToWindow, giữ tỉ lệ) khi nạp. Trên panel 1280×800 hệ số là 1 nên panel không đổi. Đã thử
 với MTP1200 OTL-30 (192.168.100.245, 02/11/2026): dò ra, mở `https://<ip>/device/WebRH`.
 
 ## Build
