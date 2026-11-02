@@ -36,8 +36,9 @@ Khi dò, phần mềm:
 
 1. Lấy các mạng đang nối (Wi-Fi, mạng dây). Bỏ qua card VPN, ảo, Bluetooth. Mạng rộng hơn /22 thì chỉ
    dò /24 quanh máy tính.
-2. Thử cổng 443 trên mọi địa chỉ (192 kết nối song song, mỗi kết nối chờ 0,7 s). Một dải /24 xong
-   trong khoảng 1,5 giây.
+2. Thử cổng 443 trên mọi địa chỉ cùng một lượt (tới 1024 kết nối song song, mỗi kết nối chờ 0,4 s).
+   Đã thấy máy thì chỉ chờ thiết bị chậm thêm 0,3 s; lượt nhanh không thấy máy nào thì dò lại với thời
+   gian chờ 1,5 s (máy Wi-Fi đang ngủ). Hai dải /24 (508 địa chỉ): khoảng 0,75 s quét, 1 s cả lượt.
 3. Nhận dạng màn hình máy rang (Siemens WinCC Unified), thử lần lượt hai đường:
    - `https://<ip>/device/WebRH`: panel Unified Comfort (MTP…). `/WebRH` của panel luôn trả 503 của
      Industrial Edge, không phải trang runtime;

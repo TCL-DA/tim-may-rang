@@ -41,7 +41,12 @@ static class TimMayRang
     const string Ban = "1.1";
     const string GiaoThuc = "otl-tim";
     const string TrangWeb = "https://tcl-da.github.io/tim-may-rang/";
-    const int ChoNoiMs = 700;           // chờ một cổng TCP trả lời
+    // Chờ một cổng TCP trả lời. Trong LAN máy có thật trả lời (SYN-ACK hoặc RST) trong vài ms; chỉ địa chỉ
+    // trống mới chờ hết, và mọi địa chỉ được thử cùng lúc nên cả lượt quét chỉ tốn chừng này.
+    const int ChoNoiMs = 400;
+    // Lượt nhanh không thấy máy nào thì dò lại với thời gian chờ này: máy Wi-Fi đang ngủ đo được ~1,5 s.
+    const int ChoNoiChamMs = 1500;
+    const int ChoHttpMs = 2500;         // thiết bị lạ có cổng 443 (router, máy in) đừng giữ lượt dò lâu
     // Trang web client WinCC Unified: panel Unified Comfort để ở /device/WebRH (/WebRH của panel là 503
     // của Industrial Edge, đo trên MTP1200 02/11/2026); Unified PC Runtime để ở /WebRH.
     static readonly string[] DuongManHinh = { "/device/WebRH", "/WebRH" };
@@ -77,11 +82,12 @@ static class TimMayRang
         try { ServicePointManager.SecurityProtocol |= (SecurityProtocolType)12288; }   // TLS 1.3, có từ .NET 4.8 trên Windows 11
         catch (NotSupportedException) { }
         ServicePointManager.DefaultConnectionLimit = 64;
+        ThreadPool.SetMinThreads(256, 256);   // 508 kết nối đi cùng lúc: đừng chờ thread pool tăng dần
 
         var ds = new List<string>(args);
         if (ds.Count >= 2 && ds[0] == "--do")   // chỉ dò, kết quả vào nhật ký: --do 192.168.0.0/24
         {
-            DoMang(new[] { DaiTuChuoi(ds[1]) }).Wait();
+            DoMang(new[] { DaiTuChuoi(ds[1]) }, ChoNoiMs).Wait();
             return 0;
         }
         if (ds.Count >= 2 && ds[0] == "--thu") { thuMucThu = ds[1]; ds.RemoveRange(0, 2); }
@@ -121,7 +127,8 @@ static class TimMayRang
         Log("Dò " + dai.Count + " dải: " + string.Join(", ", dai.Select(x => x.Ten + " " + x.Mang)));
         if (dai.Count == 0) { BaoTrang("ket=khong-mang"); return; }
 
-        List<May> thay = DoMang(dai).Result;
+        List<May> thay = DoMang(dai, ChoNoiMs).Result;
+        if (thay.Count == 0) { Log("Lượt nhanh không thấy máy, dò lại chậm"); thay = DoMang(dai, ChoNoiChamMs).Result; }
         var sanSang = thay.Where(m => m.TrangThai == "san-sang").ToList();
         var chuaBat = thay.Where(m => m.TrangThai != "san-sang").ToList();
         foreach (May m in sanSang)
@@ -140,8 +147,8 @@ static class TimMayRang
     {
         IPAddress ip;
         if (!LaIpNoiBo(v, out ip)) { BaoTrang("ket=ip-sai&ip=" + Uri.EscapeDataString(v)); return; }
-        if (!CongMo(ip, 443).Result) { BaoTrang("ket=khong-tra-loi&ip=" + ip); return; }
-        May m = NhanDang(ip).Result;
+        if (!CongMo(ip, 443, ChoNoiChamMs).Result) { BaoTrang("ket=khong-tra-loi&ip=" + ip); return; }
+        May m = NhanDang(ip, ChoNoiChamMs).Result;
         if (m == null) { BaoTrang("ket=khong-phai-may&ip=" + ip); return; }
         if (m.TrangThai != "san-sang") { BaoTrang("ket=chua-bat&chua=" + ip); return; }
         try { TaoIcon(m, false); } catch (Exception e) { Log("Không tạo được icon: " + e.Message); }
@@ -230,10 +237,11 @@ static class TimMayRang
     static uint SoTuIp(IPAddress a) { byte[] b = a.GetAddressBytes(); return ((uint)b[0] << 24) | ((uint)b[1] << 16) | ((uint)b[2] << 8) | b[3]; }
     static string IpTuSo(uint v) { return (v >> 24) + "." + ((v >> 16) & 255) + "." + ((v >> 8) & 255) + "." + (v & 255); }
 
-    static async Task<List<May>> DoMang(IList<Dai> dai)
+    static async Task<List<May>> DoMang(IList<Dai> dai, int choNoi)
     {
         var thay = new List<May>();
-        var hen = new SemaphoreSlim(192);
+        var dongHo = Stopwatch.StartNew();
+        var hen = new SemaphoreSlim(1024);   // hai dải /24 = 508 địa chỉ đi cùng một lượt
         var viec = new List<Task>();
         foreach (Dai d in dai)
         {
@@ -245,8 +253,8 @@ static class TimMayRang
                 {
                     try
                     {
-                        if (!await CongMo(hh, 443)) return;
-                        May m = await NhanDang(hh);
+                        if (!await CongMo(hh, 443, choNoi)) return;
+                        May m = await NhanDang(hh, choNoi);
                         if (m == null) return;
                         lock (thay) thay.Add(m);
                         Log("Thấy máy " + m.Ip + " " + m.TrangThai + " (HTTP " + m.MaHttp + ")");
@@ -255,19 +263,31 @@ static class TimMayRang
                 }));
             }
         }
-        await Task.WhenAll(viec);
-        Log("Dò xong " + dai.Sum(d => d.Host.Count) + " địa chỉ, thấy " + thay.Count + " máy");
-        return thay.OrderBy(m => SoTuIp(IPAddress.Parse(m.Ip))).ToList();
+        // Đã thấy máy thì không chờ hết các thiết bị lạ bắt tay HTTPS chậm (router, máy Wi-Fi ngủ — đo được
+        // ~1 s): panel trả lời trong vài chục ms, nên quét xong mà thêm 0,3 s không ra máy nào nữa là đủ.
+        // Chưa thấy máy nào thì chờ đủ, đừng bỏ sót.
+        Task tatCa = Task.WhenAll(viec);
+        while (!tatCa.IsCompleted)
+        {
+            await Task.WhenAny(tatCa, Task.Delay(50));
+            bool coMay;
+            lock (thay) coMay = thay.Any(m => m.TrangThai == "san-sang");
+            if (coMay && dongHo.ElapsedMilliseconds > choNoi + 300) { Log("Đã thấy máy, thôi chờ thiết bị chậm"); break; }
+        }
+        List<May> kq;
+        lock (thay) kq = thay.OrderBy(m => SoTuIp(IPAddress.Parse(m.Ip))).ToList();
+        Log("Dò xong " + dai.Sum(d => d.Host.Count) + " địa chỉ, thấy " + kq.Count + " máy");
+        return kq;
     }
 
-    static async Task<bool> CongMo(IPAddress ip, int c)
+    static async Task<bool> CongMo(IPAddress ip, int c, int choNoi)
     {
         using (var t = new TcpClient(AddressFamily.InterNetwork))
         {
             try
             {
                 Task noi = t.ConnectAsync(ip, c);
-                if (await Task.WhenAny(noi, Task.Delay(ChoNoiMs)) != noi) return false;
+                if (await Task.WhenAny(noi, Task.Delay(choNoi)) != noi) return false;
                 await noi;
                 return t.Connected;
             }
@@ -277,9 +297,9 @@ static class TimMayRang
 
     // Màn hình máy rang OTL là panel Siemens WinCC Unified: mở 443 (web), 102 (S7), 5900 (VNC).
     // PLC S7 cũng mở 102 (+443 nếu bật web server) nhưng không có VNC và không có trang WebRH.
-    static async Task<May> NhanDang(IPAddress ip)
+    static async Task<May> NhanDang(IPAddress ip, int choNoi)
     {
-        Task<bool> s7 = CongMo(ip, 102), vnc = CongMo(ip, 5900);
+        Task<bool> s7 = CongMo(ip, 102, choNoi), vnc = CongMo(ip, 5900, choNoi);
         int maCuoi = 0;
         foreach (string duong in DuongManHinh)
         {
@@ -287,7 +307,7 @@ static class TimMayRang
             try
             {
                 var r = (HttpWebRequest)WebRequest.Create("https://" + ip + duong);
-                r.Timeout = 4000; r.ReadWriteTimeout = 4000; r.AllowAutoRedirect = false;
+                r.Timeout = ChoHttpMs; r.ReadWriteTimeout = ChoHttpMs; r.AllowAutoRedirect = false;
                 r.UserAgent = "OTL-Tim-May-Rang/" + Ban;
                 using (var p = (HttpWebResponse)await LayTraLoi(r)) { ma = (int)p.StatusCode; noiDung = DocDauTraLoi(p); }
             }
