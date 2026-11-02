@@ -1,0 +1,11 @@
+# Máy chủ lịch sử của phần mềm Tìm máy rang OTL (Cloudflare Worker + D1).
+# Triển khai: cd may-chu; npx wrangler@3 deploy
+# Mật khẩu trang quản lý OTL: npx wrangler@3 secret put MAT_KHAU (không ghi vào repo)
+name = "otl-tim-may-rang"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "otl-tim-may-rang"
+database_id = "58b62bbd-e03f-45d6-af15-0940a178bc42"

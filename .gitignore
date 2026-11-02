@@ -1,1 +1,4 @@
 app/build/
+may-chu/.wrangler/
+may-chu/.dev.vars
+may-chu/node_modules/

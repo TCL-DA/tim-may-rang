@@ -13,3 +13,6 @@ Màn hình máy chiếm trọn màn hình. Nhấn Alt + F4 để đóng.
 
 Không tìm thấy máy: gọi OTL 0936 198 938 và gửi kèm tệp nhật ký
 %LOCALAPPDATA%\OTL\TimMayRang\nhat-ky.txt
+
+Lịch sử lỗi và thao tác của phần mềm được gửi về máy chủ OTL để kỹ thuật hỗ trợ từ xa.
+Xem lịch sử: bấm "Xem lịch sử lỗi và thao tác của quán" trên trang Tìm máy rang.

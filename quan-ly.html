@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Quản lý lịch sử | Tìm máy rang OTL</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+/* Trang cho kỹ thuật OTL: danh sách mọi quán đã cài phần mềm, quán nào nhiều lỗi 7 ngày qua nổi lên trước.
+   Cùng hệ với lich-su.html. Mật khẩu chỉ giữ trong sessionStorage của thẻ này. */
+:root{
+  --nen:#F6F8F7; --than:#0F0E12; --muc:#000000; --net:#E5E5E5; --mo:#767676; --canh:#9A5205;
+  --font:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--nen);color:var(--muc)}
+body{font:300 16px/1.55 var(--font)}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--muc);outline-offset:3px}
+.khung{max-width:1100px;margin:0 auto;padding:0 32px}
+.dau{display:flex;align-items:center;gap:22px;padding:22px 32px;border-bottom:1px solid var(--net);flex-wrap:wrap}
+.dau .ten{font-size:15px;color:var(--mo)}
+.dau .ten b{color:var(--muc);font-weight:400;letter-spacing:.12em;margin-right:12px}
+.nut{font:300 16px/1 var(--font);min-height:44px;padding:0 20px;border:1px solid var(--muc);background:transparent;color:var(--muc);cursor:pointer}
+.nut:hover{background:var(--muc);color:var(--nen)}
+.nut.dac{background:var(--than);color:var(--nen);border-color:var(--than)}
+.dau .nut{margin-left:auto}
+h1{font-weight:200;font-size:clamp(28px,4vw,44px);line-height:1.15;letter-spacing:-.01em;margin:48px 0 10px}
+.phu{color:var(--mo);margin:0 0 33px;max-width:70ch}
+.dang-nhap{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+input{font:300 17px/1 var(--font);padding:0 14px;min-height:44px;border:1px solid var(--muc);background:var(--nen);color:var(--muc)}
+.dang-nhap input{width:260px}
+.loi-nho{color:var(--canh);font-weight:400;margin:10px 0 0}
+table{width:100%;border-collapse:collapse;margin-bottom:56px}
+th{font-weight:400;font-size:14px;color:var(--mo);text-align:left;padding:10px 12px 8px 0;border-bottom:1px solid var(--muc)}
+td{padding:12px 12px 12px 0;border-bottom:1px solid var(--net);vertical-align:middle}
+td.so{font-variant-numeric:tabular-nums}
+tr.co-loi td.loi7{color:var(--canh);font-weight:400}
+td input{width:100%;min-width:140px;min-height:38px;font-size:16px;border-color:var(--net)}
+td input:focus{border-color:var(--muc)}
+.ma{font-size:13px;color:var(--mo);display:block}
+[hidden]{display:none!important}
+@media (max-width:760px){
+  .khung,.dau{padding-left:16px;padding-right:16px}
+  .dau .nut{margin-left:0}
+  table,thead,tbody,tr,td{display:block}
+  thead{display:none}
+  tr{border-bottom:1px solid var(--muc);padding:10px 0}
+  td{border:0;padding:4px 0}
+  td[data-n]::before{content:attr(data-n) ": ";color:var(--mo)}
+}
+</style>
+</head>
+<body>
+<header class="dau">
+  <div class="ten"><b>OTL</b>Quản lý lịch sử phần mềm Tìm máy rang</div>
+  <button class="nut" type="button" id="nutThoat" hidden>Đăng xuất</button>
+</header>
+<main class="khung">
+  <section id="khoiDangNhap">
+    <h1>Đăng nhập kỹ thuật OTL</h1>
+    <p class="phu">Trang này xem lịch sử lỗi và thao tác của mọi quán đã cài phần mềm Tìm máy rang.</p>
+    <form class="dang-nhap" id="form">
+      <input type="password" id="oMk" autocomplete="current-password" aria-label="Mật khẩu" placeholder="Mật khẩu" required>
+      <button class="nut dac" type="submit">Đăng nhập</button>
+    </form>
+    <p class="loi-nho" id="loi" hidden></p>
+  </section>
+  <section id="khoiDs" hidden>
+    <h1 id="tom"></h1>
+    <p class="phu">Quán có lỗi trong 7 ngày qua xếp lên trước. Đặt tên quán để dễ nhận ra; tên lưu ngay khi rời ô.</p>
+    <table>
+      <thead><tr><th>Quán</th><th>Máy tính</th><th>Bản</th><th>Lần cuối</th><th>Lỗi 7 ngày</th><th>Tổng mục</th><th></th></tr></thead>
+      <tbody id="bang"></tbody>
+    </table>
+  </section>
+</main>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var mayChu = '';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  // lan_cuoi do máy chủ ghi theo UTC; đổi sang giờ của máy đang xem.
+  function gio(t) {
+    if (!t) return '';
+    var d = new Date(t + 'Z'), h = function (n) { return ('0' + n).slice(-2); };
+    return h(d.getDate()) + '/' + h(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + h(d.getHours()) + ':' + h(d.getMinutes());
+  }
+  function mk() { try { return sessionStorage.getItem('otl-mk') || ''; } catch (e) { return ''; } }
+  function goi(duong, tuyChon) {
+    tuyChon = tuyChon || {};
+    tuyChon.headers = Object.assign({ 'x-mk': mk() }, tuyChon.headers || {});
+    tuyChon.cache = 'no-store';
+    return fetch(mayChu + duong, tuyChon).then(function (r) {
+      if (r.status === 403) throw new Error('sai-mat-khau');
+      if (!r.ok) throw new Error('may-chu');
+      return r.json();
+    });
+  }
+  function baoLoi(chu) { $('loi').textContent = chu; $('loi').hidden = false; }
+
+  function taiDs() {
+    return goi('/ds').then(function (j) {
+      var ds = j.quan.slice().sort(function (a, b) { return (b.loi7 - a.loi7) || (a.lan_cuoi < b.lan_cuoi ? 1 : -1); });
+      $('tom').textContent = ds.length + ' quán, ' + ds.filter(function (q) { return q.loi7 > 0; }).length + ' quán có lỗi tuần này';
+      $('bang').innerHTML = ds.map(function (q) {
+        return '<tr' + (q.loi7 > 0 ? ' class="co-loi"' : '') + '>' +
+          '<td data-n="Quán"><input value="' + esc(q.ten || '') + '" placeholder="Đặt tên quán" data-ma="' + esc(q.ma) + '" aria-label="Tên quán ' + esc(q.ma) + '"><span class="ma">Mã ' + esc(q.ma) + '</span></td>' +
+          '<td data-n="Máy tính">' + esc(q.may) + '</td><td data-n="Bản">' + esc(q.ban) + '</td>' +
+          '<td data-n="Lần cuối" class="so">' + gio(q.lan_cuoi) + '</td>' +
+          '<td data-n="Lỗi 7 ngày" class="so loi7">' + q.loi7 + '</td><td data-n="Tổng mục" class="so">' + q.tong + '</td>' +
+          '<td><a class="nut" href="lich-su.html#ma=' + encodeURIComponent(q.ma) + '">Xem lịch sử</a></td></tr>';
+      }).join('');
+      $('khoiDangNhap').hidden = true; $('khoiDs').hidden = false; $('nutThoat').hidden = false;
+    });
+  }
+
+  $('bang').addEventListener('change', function (e) {
+    var o = e.target; if (!o.getAttribute('data-ma')) return;
+    goi('/dat-ten', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ma: o.getAttribute('data-ma'), ten: o.value.trim() }) })
+      .catch(function () { o.style.borderColor = 'var(--canh)'; });
+  });
+
+  $('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    $('loi').hidden = true;
+    try { sessionStorage.setItem('otl-mk', $('oMk').value); } catch (x) { }
+    taiDs().catch(function (x) {
+      try { sessionStorage.removeItem('otl-mk'); } catch (y) { }
+      baoLoi(String(x.message) === 'sai-mat-khau' ? 'Mật khẩu không đúng.' : 'Không nối được máy chủ lịch sử. Kiểm lại Internet.');
+    });
+  });
+  $('nutThoat').addEventListener('click', function () {
+    try { sessionStorage.removeItem('otl-mk'); } catch (x) { }
+    location.reload();
+  });
+
+  fetch('may-chu.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (c) {
+    mayChu = (c.url || '').replace(/\/$/, '');
+    if (!mayChu) { baoLoi('Máy chủ lịch sử chưa bật (may-chu.json chưa có địa chỉ).'); return; }
+    if (mk()) taiDs().catch(function () { try { sessionStorage.removeItem('otl-mk'); } catch (y) { } });
+  }).catch(function () { baoLoi('Không đọc được may-chu.json.'); });
+})();
+</script>
+</body>
+</html>

@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
 <title>Lịch sử Tìm máy rang OTL</title>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@200;300;400&display=swap" rel="stylesheet">
 <style>
 /* Cùng hệ với trang tcl-da.github.io/tim-may-rang: năm màu trung tính, không bo góc, không bóng, kẻ 1px.
-   Hổ phách chỉ dành cho dòng lỗi. Điểm đậm duy nhất là câu tóm tắt chữ lớn. */
+   Hổ phách chỉ dành cho dòng lỗi. Điểm đậm duy nhất là câu tóm tắt chữ lớn.
+   Một tệp, hai chỗ chạy: phần mềm nhúng dữ liệu vào D rồi mở trên máy; trên web thì D rỗng và trang tải
+   lịch sử từ máy chủ theo #ma=…&k=… (link của quán) hoặc mật khẩu OTL (trang quản lý). */
 :root{
   --nen:#F6F8F7; --than:#0F0E12; --muc:#000000; --net:#E5E5E5; --mo:#767676; --canh:#9A5205;
   --font:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif;
@@ -15,6 +18,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--nen);color:var(--muc)}
 body{font:300 16px/1.55 var(--font)}
+a{color:inherit}
 :focus-visible{outline:2px solid var(--muc);outline-offset:3px}
 .khung{max-width:1100px;margin:0 auto;padding:0 32px}
 
@@ -58,42 +62,60 @@ li.dong.loi{border-left-color:var(--canh)}
 </head>
 <body>
 <header class="dau">
-  <div class="ten"><b>OTL</b>Lịch sử phần mềm Tìm máy rang</div>
-  <button class="nut" type="button" id="nutLuu">Lưu tệp gửi OTL</button>
+  <div class="ten"><b>OTL</b><span id="tenTrang">Lịch sử phần mềm Tìm máy rang</span></div>
+  <button class="nut" type="button" id="nutLuu" hidden>Lưu tệp gửi OTL</button>
 </header>
 <main class="khung">
-  <h1 class="tom" id="tom"></h1>
+  <h1 class="tom" id="tom">Đang tải lịch sử…</h1>
   <p class="tom-phu" id="tomPhu"></p>
-  <div class="loc" role="group" aria-label="Lọc lịch sử">
+  <div class="loc" role="group" aria-label="Lọc lịch sử" id="loc" hidden>
     <button type="button" data-loc="tat-ca" aria-pressed="true">Tất cả<span id="dTatCa"></span></button>
     <button type="button" data-loc="loi" aria-pressed="false">Lỗi<span id="dLoi"></span></button>
     <button type="button" data-loc="thao-tac" aria-pressed="false">Thao tác<span id="dThaoTac"></span></button>
   </div>
   <div id="ds"></div>
-  <p class="chan">Lịch sử chỉ nằm trên máy tính này. Cần hỗ trợ: bấm <b>Lưu tệp gửi OTL</b> rồi gửi tệp qua Zalo
-    <b>0936 198 938</b>.</p>
+  <p class="chan" id="chan"></p>
 </main>
 <script>
 var D = /*DU_LIEU*/[];
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var ICON_LOI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+  var TRANG = 'https://tcl-da.github.io/tim-may-rang/';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function ngay(t) { return t.slice(8, 10) + '/' + t.slice(5, 7) + '/' + t.slice(0, 4); }
   function giay(ms) { return (ms / 1000).toFixed(1).replace('.', ',') + ' s'; }
+  var homNay = new Date(), hn = homNay.getFullYear() + '-' + ('0' + (homNay.getMonth() + 1)).slice(-2) + '-' + ('0' + homNay.getDate()).slice(-2);
+  var mk = ''; try { mk = sessionStorage.getItem('otl-mk') || ''; } catch (e) { }
 
-  D.sort(function (a, b) { return a.t < b.t ? 1 : a.t > b.t ? -1 : 0; });   // mới nhất lên đầu
-  var soLoi = D.filter(function (d) { return d.loai === 'loi'; }).length, soTT = D.length - soLoi;
-  $('dTatCa').textContent = D.length; $('dLoi').textContent = soLoi; $('dThaoTac').textContent = soTT;
-  if (D.length) {
-    $('tom').textContent = (soLoi ? soLoi + ' lỗi và ' : 'Không có lỗi, ') + soTT + ' thao tác';
-    $('tomPhu').textContent = 'Từ ' + ngay(D[D.length - 1].t) + ' tới ' + ngay(D[0].t) + ', trên máy tính này.';
-  } else {
-    $('tom').textContent = 'Chưa có gì';
-    $('tomPhu').textContent = 'Lịch sử bắt đầu ghi từ lần bấm Tìm máy rang đầu tiên.';
+  function baoLoi(tieuDe, chu) {
+    $('tom').textContent = tieuDe;
+    $('tomPhu').textContent = chu;
+    $('chan').innerHTML = 'Cần hỗ trợ: gọi OTL <b>0936 198 938</b>.';
   }
 
-  var homNay = new Date(), hn = homNay.getFullYear() + '-' + ('0' + (homNay.getMonth() + 1)).slice(-2) + '-' + ('0' + homNay.getDate()).slice(-2);
+  function hien(muc, quan) {
+    D = muc;
+    D.sort(function (a, b) { return a.t < b.t ? 1 : a.t > b.t ? -1 : 0; });   // mới nhất lên đầu
+    var soLoi = D.filter(function (d) { return d.loai === 'loi'; }).length, soTT = D.length - soLoi;
+    $('dTatCa').textContent = D.length; $('dLoi').textContent = soLoi; $('dThaoTac').textContent = soTT;
+    var noi = quan ? 'quán ' + (quan.ten || quan.ma) + (quan.may ? ' (máy tính ' + quan.may + ')' : '') : 'máy tính này';
+    if (quan) { $('tenTrang').textContent = 'Lịch sử ' + noi; document.title = 'Lịch sử ' + (quan.ten || quan.ma) + ' | Tìm máy rang OTL'; }
+    if (D.length) {
+      $('tom').textContent = (soLoi ? soLoi + ' lỗi và ' : 'Không có lỗi, ') + soTT + ' thao tác';
+      $('tomPhu').textContent = 'Từ ' + ngay(D[D.length - 1].t) + ' tới ' + ngay(D[0].t) + ', ' + noi + '.';
+    } else {
+      $('tom').textContent = 'Chưa có gì';
+      $('tomPhu').textContent = 'Lịch sử bắt đầu ghi từ lần bấm Tìm máy rang đầu tiên.';
+    }
+    $('loc').hidden = false;
+    $('nutLuu').hidden = false;
+    $('chan').innerHTML = quan
+      ? 'Lịch sử này lưu trên máy chủ OTL, mở link ở máy nào cũng xem được. Chỉ người có link mới xem được, đừng đăng link lên mạng.'
+      : 'Đây là bản trên máy tính này (chưa gửi được lên máy chủ OTL). Cần hỗ trợ: bấm <b>Lưu tệp gửi OTL</b> rồi gửi tệp qua Zalo <b>0936 198 938</b>.';
+    ve('tat-ca');
+  }
+
   function ve(loc) {
     var h = '', nhom = null;
     D.forEach(function (d) {
@@ -113,7 +135,6 @@ var D = /*DU_LIEU*/[];
     if (nhom !== null) h += '</ol>';
     $('ds').innerHTML = h || '<div class="trong">Không có mục nào ở đây.</div>';
   }
-  ve('tat-ca');
 
   Array.prototype.forEach.call(document.querySelectorAll('.loc button'), function (b) {
     b.addEventListener('click', function () {
@@ -123,7 +144,7 @@ var D = /*DU_LIEU*/[];
   });
 
   $('nutLuu').addEventListener('click', function () {
-    var dong = ['Lich su phan mem Tim may rang OTL', 'Luu luc ' + new Date().toLocaleString('vi-VN'), ''];
+    var dong = ['Lich su phan mem Tim may rang OTL', $('tenTrang').textContent, 'Luu luc ' + new Date().toLocaleString('vi-VN'), ''];
     D.forEach(function (d) {
       dong.push(d.t.replace('T', ' ') + '  ' + (d.loai === 'loi' ? 'LOI      ' : 'THAO TAC ') + d.viec + ' | ' + (d.chiTiet || '') + (d.ms ? ' | ' + giay(d.ms) : ''));
     });
@@ -132,6 +153,32 @@ var D = /*DU_LIEU*/[];
     a.download = 'lich-su-tim-may-rang-' + hn + '.txt';
     document.body.appendChild(a); a.click(); a.remove();
     $('nutLuu').textContent = 'Đã lưu tệp';
+  });
+
+  // Phần mềm đã nhúng dữ liệu: bản trên máy.
+  if (D.length || location.protocol === 'file:') { hien(D, null); return; }
+
+  // Bản trên web: tải từ máy chủ ghi trong may-chu.json.
+  var q = new URLSearchParams(location.hash.slice(1)), ma = q.get('ma'), khoa = q.get('k');
+  if (!ma || (!khoa && !mk)) {
+    baoLoi('Chưa có link lịch sử', 'Mở lịch sử bằng link của quán: trên máy tính đã cài phần mềm, bấm "Xem lịch sử lỗi và thao tác" ở trang Tìm máy rang.');
+    return;
+  }
+  fetch(TRANG + 'may-chu.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (c) {
+    if (!c.url) throw new Error('chua-co-may-chu');
+    var h = {}; if (khoa) h['x-khoa'] = khoa; if (mk) h['x-mk'] = mk;
+    return fetch(c.url.replace(/\/$/, '') + '/quan?ma=' + encodeURIComponent(ma), { headers: h, cache: 'no-store' });
+  }).then(function (r) {
+    if (r.status === 403) throw new Error('sai-khoa');
+    if (r.status === 404) throw new Error('khong-co-quan');
+    if (!r.ok) throw new Error('may-chu');
+    return r.json();
+  }).then(function (j) { hien(j.muc, j.quan); }).catch(function (e) {
+    var m = String(e && e.message);
+    if (m === 'sai-khoa') baoLoi('Link không đúng', 'Link lịch sử này thiếu hoặc sai khoá xem. Mở lại từ phần mềm trên máy tính của quán.');
+    else if (m === 'khong-co-quan') baoLoi('Chưa có lịch sử', 'Máy chủ chưa nhận lịch sử nào của quán này. Bấm Tìm máy rang một lần trên máy tính của quán rồi xem lại.');
+    else if (m === 'chua-co-may-chu') baoLoi('Máy chủ lịch sử chưa bật', 'OTL chưa bật máy chủ lưu lịch sử trên web.');
+    else baoLoi('Không tải được lịch sử', 'Kiểm lại kết nối Internet rồi tải lại trang.');
   });
 })();
 </script>

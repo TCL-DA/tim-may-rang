@@ -39,6 +39,27 @@ trang gọi `otl-tim://lich-su`: phần mềm dựng `lich-su.html` từ mẫu `
 trình duyệt. Trang lọc Tất cả / Lỗi / Thao tác và có nút **Lưu tệp gửi OTL** (tệp .txt để gửi qua Zalo).
 `nhat-ky.txt` vẫn giữ dòng kỹ thuật chi tiết cho người sửa phần mềm.
 
+**Lưu trên web (bản 1.3).** Mỗi máy tính là một quán: mã + khoá ghi + khoá xem, sinh một lần ở `quan.txt`.
+Mục lịch sử mới vào thêm `cho-gui.jsonl`; mỗi lần phần mềm chạy nó gửi lên máy chủ, mất mạng thì để lần sau.
+Địa chỉ máy chủ đọc từ [`may-chu.json`](may-chu.json) trên trang (trống = chưa bật, phần mềm mở bản trên máy).
+
+- Khách: **Xem lịch sử lỗi và thao tác của quán** mở `lich-su.html#ma=…&k=…`, link mở ở máy nào cũng xem được.
+- OTL: [`quan-ly.html`](https://tcl-da.github.io/tim-may-rang/quan-ly.html), mật khẩu là secret `MAT_KHAU` của Worker;
+  danh sách quán (lỗi 7 ngày xếp trước), đặt tên quán, xem lịch sử từng quán.
+- Máy chủ: [`may-chu/`](may-chu) — Cloudflare Worker + D1 (`worker.js`, `schema.sql`, `wrangler.toml`). Khoá chỉ lưu
+  dạng SHA-256, mỗi quán giữ 5000 mục.
+
+```powershell
+cd may-chu
+npx wrangler@3 d1 execute otl-tim-may-rang --remote --file schema.sql
+npx wrangler@3 deploy                      # in ra địa chỉ https://otl-tim-may-rang.<...>.workers.dev
+npx wrangler@3 secret put MAT_KHAU         # mật khẩu trang quản lý OTL
+# rồi ghi địa chỉ đó vào may-chu.json và đẩy lên
+```
+
+Thử ở máy: `npx wrangler@3 dev --local` (mật khẩu thử trong `may-chu/.dev.vars`), chạy phần mềm với biến môi
+trường `OTL_TIM_MAY_CHU=http://127.0.0.1:8787`.
+
 Đúng một máy sẵn sàng thì phần mềm mở luôn màn hình máy, không mở thêm gì. Các trường hợp còn lại nó
 mở lại trang với `#ket=…` để trang báo: `nhieu` (kèm `may=`), `chua-bat` (`chua=`), `khong-thay`
 (`mang=`), `khong-mang`, `ip-sai` / `khong-tra-loi` / `khong-phai-may` (`ip=`).

@@ -34,12 +34,12 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("OTL Tìm máy rang")]
 [assembly: AssemblyProduct("OTL Tìm máy rang")]
 [assembly: AssemblyCompany("OTL Roaster")]
-[assembly: AssemblyVersion("1.2.0.0")]
-[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyVersion("1.3.0.0")]
+[assembly: AssemblyFileVersion("1.3.0.0")]
 
 static class TimMayRang
 {
-    const string Ban = "1.2";
+    const string Ban = "1.3";
     const string GiaoThuc = "otl-tim";
     const string TrangWeb = "https://tcl-da.github.io/tim-may-rang/";
     // Chờ một cổng TCP trả lời. Trong LAN máy có thật trả lời (SYN-ACK hoặc RST) trong vài ms; chỉ địa chỉ
@@ -115,6 +115,7 @@ static class TimMayRang
                 else GhiLoi("Lỗi chương trình", "Không hiểu lệnh: " + lenh);
             }
             catch (Exception e) { GhiLoi("Lỗi chương trình", MoTaLoi(e)); }
+            if (thuMucThu == null && !daGui) GuiLen();   // lần nào chạy cũng gửi những mục còn chờ
         }
         return 0;
     }
@@ -602,6 +603,7 @@ static class TimMayRang
             {
                 string tep = Path.Combine(thuMucApp, "lich-su.jsonl");
                 File.AppendAllText(tep, dong + "\n", new UTF8Encoding(false));
+                if (thuMucThu == null) File.AppendAllText(Path.Combine(thuMucApp, "cho-gui.jsonl"), dong + "\n", new UTF8Encoding(false));
                 if (new FileInfo(tep).Length > 600000)
                 {
                     string[] tat = File.ReadAllLines(tep, Encoding.UTF8);
@@ -612,10 +614,17 @@ static class TimMayRang
         }
     }
 
-    // Trang lịch sử: tệp HTML tĩnh dựng từ mẫu nhúng trong exe + dữ liệu lich-su.jsonl, mở bằng trình duyệt.
+    // Trang lịch sử: gửi được lên máy chủ thì mở bản trên web của quán (link này mở ở máy nào cũng xem được);
+    // không thì dựng tệp HTML từ mẫu nhúng trong exe + lich-su.jsonl và mở trên máy.
     static void MoLichSu()
     {
         GhiThaoTac("Xem lịch sử", "Mở trang lịch sử lỗi và thao tác.");
+        if (thuMucThu == null && GuiLen())
+        {
+            Quan q = LayQuan();
+            MoTrinhDuyet(TrangWeb + "lich-su.html#ma=" + q.Ma + "&k=" + q.KhoaXem);
+            return;
+        }
         string tep = Path.Combine(thuMucApp, "lich-su.jsonl");
         string[] dong;
         lock (khoaLog) dong = File.Exists(tep) ? File.ReadAllLines(tep, Encoding.UTF8) : new string[0];
@@ -624,6 +633,107 @@ static class TimMayRang
         string html = Path.Combine(thuMucApp, "lich-su.html");
         File.WriteAllText(html, mau.Replace("/*DU_LIEU*/[]", json), new UTF8Encoding(false));
         MoTrinhDuyet(html);
+    }
+
+    // ── Gửi lịch sử lên máy chủ OTL ─────────────────────────────────────────────────────────────
+    // Mỗi máy tính là một "quán": mã + khoá ghi (chỉ phần mềm giữ) + khoá xem (nằm trong link lịch sử của
+    // khách), sinh một lần lưu ở quan.txt. Mục mới vào cho-gui.jsonl; gửi được thì xoá, mất mạng thì để lần sau.
+    // Địa chỉ máy chủ đọc từ may-chu.json trên trang web, đổi máy chủ không phải phát hành lại phần mềm.
+
+    class Quan { public string Ma, KhoaGhi, KhoaXem; }
+
+    static bool daGui;
+
+    static Quan LayQuan()
+    {
+        string tep = Path.Combine(thuMucApp, "quan.txt");
+        string[] d = File.Exists(tep) ? File.ReadAllLines(tep) : new string[0];
+        if (d.Length >= 3 && d[0].Length >= 6) return new Quan { Ma = d[0], KhoaGhi = d[1], KhoaXem = d[2] };
+        var q = new Quan { Ma = NgauNhien(8, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"), KhoaGhi = NgauNhien(32, null), KhoaXem = NgauNhien(24, null) };
+        File.WriteAllLines(tep, new[] { q.Ma, q.KhoaGhi, q.KhoaXem });
+        return q;
+    }
+
+    static string NgauNhien(int n, string bangChu)
+    {
+        const string macDinh = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        string c = bangChu ?? macDinh;
+        var b = new byte[n];
+        using (var r = new RNGCryptoServiceProvider()) r.GetBytes(b);
+        var sb = new StringBuilder();
+        foreach (byte x in b) sb.Append(c[x % c.Length]);
+        return sb.ToString();
+    }
+
+    static string DiaChiMayChu()
+    {
+        string thu = Environment.GetEnvironmentVariable("OTL_TIM_MAY_CHU");   // bài thử: máy chủ wrangler dev
+        if (!string.IsNullOrEmpty(thu)) return thu.TrimEnd('/');
+        string luu = Path.Combine(thuMucApp, "may-chu.txt");
+        try
+        {
+            var r = (HttpWebRequest)WebRequest.Create(TrangWeb + "may-chu.json");
+            r.Timeout = 3000; r.ReadWriteTimeout = 3000;
+            r.CachePolicy = new System.Net.Cache.RequestCachePolicy(System.Net.Cache.RequestCacheLevel.NoCacheNoStore);
+            string j;
+            using (var p = (HttpWebResponse)r.GetResponse())
+            using (var sr = new StreamReader(p.GetResponseStream(), Encoding.UTF8)) j = sr.ReadToEnd();
+            int i = j.IndexOf("\"url\""), a = i < 0 ? -1 : j.IndexOf('"', j.IndexOf(':', i) + 1), b = a < 0 ? -1 : j.IndexOf('"', a + 1);
+            string url = b > a ? j.Substring(a + 1, b - a - 1).Trim().TrimEnd('/') : "";
+            File.WriteAllText(luu, url);
+            return url;
+        }
+        catch (Exception e)
+        {
+            Log("Không đọc được may-chu.json: " + e.Message);
+            return File.Exists(luu) ? File.ReadAllText(luu).Trim() : "";
+        }
+    }
+
+    // Trả true khi máy chủ đã có đủ lịch sử của quán (không còn mục chờ).
+    static bool GuiLen()
+    {
+        daGui = true;
+        string tep = Path.Combine(thuMucApp, "cho-gui.jsonl");
+        string[] cho;
+        lock (khoaLog) cho = File.Exists(tep) ? File.ReadAllLines(tep, Encoding.UTF8).Where(d => d.StartsWith("{")).ToArray() : new string[0];
+        string url = DiaChiMayChu();
+        if (url == "") { Log("Chưa có máy chủ lịch sử (may-chu.json trống)"); return false; }
+        Quan q = LayQuan();
+        int daNhan = 0;
+        bool xong = false;
+        try
+        {
+            do
+            {
+                string[] lo = cho.Skip(daNhan).Take(400).ToArray();
+                string than = "{\"ma\":" + Js(q.Ma) + ",\"khoaGhi\":" + Js(q.KhoaGhi) + ",\"khoaXem\":" + Js(q.KhoaXem) +
+                    ",\"may\":" + Js(Environment.MachineName) + ",\"ban\":" + Js(Ban) + ",\"muc\":[" + string.Join(",", lo) + "]}";
+                byte[] b = Encoding.UTF8.GetBytes(than);
+                var r = (HttpWebRequest)WebRequest.Create(url + "/ghi");
+                r.Method = "POST"; r.ContentType = "application/json; charset=utf-8"; r.Timeout = 6000; r.ReadWriteTimeout = 6000;
+                using (Stream s = r.GetRequestStream()) s.Write(b, 0, b.Length);
+                using (var p = (HttpWebResponse)r.GetResponse()) { }
+                daNhan += lo.Length;
+            } while (daNhan < cho.Length);
+            xong = true;
+        }
+        catch (Exception e) { Log("Chưa gửi được lịch sử lên máy chủ (" + daNhan + "/" + cho.Length + " mục): " + e.Message); }
+        // Xoá đúng những dòng đã gửi; dòng mới ghi thêm trong lúc gửi vẫn ở lại.
+        lock (khoaLog)
+        {
+            try
+            {
+                if (daNhan > 0)
+                {
+                    string[] hienTai = File.ReadAllLines(tep, Encoding.UTF8).Where(d => d.StartsWith("{")).ToArray();
+                    File.WriteAllLines(tep, hienTai.Skip(daNhan), new UTF8Encoding(false));
+                }
+            }
+            catch (Exception e) { Log("Không dọn được cho-gui.jsonl: " + e.Message); }
+        }
+        if (daNhan > 0) Log("Đã gửi " + daNhan + " mục lịch sử lên máy chủ");
+        return xong;
     }
 
     static string MoTaLoi(Exception e)
