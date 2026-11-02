@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Security;
@@ -165,10 +166,12 @@ static class TimMayRang
 
     // ── Cài đặt: chép exe vào chỗ cố định + đăng ký otl-tim:// cho người dùng hiện tại ──────────
 
+    static readonly string ExeCai = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Programs", "OTL Tim May Rang", "OTL Tim May Rang.exe");
+
     static void CaiDat()
     {
-        string dich = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "OTL Tim May Rang");
-        string exeDich = Path.Combine(dich, "OTL Tim May Rang.exe");
+        string exeDich = ExeCai, dich = Path.GetDirectoryName(ExeCai);
         string exeNay = Assembly.GetExecutingAssembly().Location;
         if (!string.Equals(Path.GetFullPath(exeNay), Path.GetFullPath(exeDich), StringComparison.OrdinalIgnoreCase))
         {
@@ -360,7 +363,8 @@ static class TimMayRang
     }
 
     // ── Icon desktop ─────────────────────────────────────────────────────────────────────────────
-    // Có Edge/Chrome thì là .lnk mở thẳng cửa sổ toàn màn hình (ThamSoManHinh); không có thì là .url.
+    // .lnk gọi lại chính phần mềm đã cài với otl-tim://mo/<ip>, không gọi thẳng Edge: bấm icon khi cửa sổ
+    // máy đang mở thì phải đưa cửa sổ đó lên (MoMay), và chứng chỉ panel đổi thì lần mở sau ghim lại đúng.
 
     static string TaoIcon(May m, bool nhieuMay)
     {
@@ -369,36 +373,23 @@ static class TimMayRang
         string ico = Path.Combine(thuMucApp, "may-rang-otl.ico");
         if (!File.Exists(ico)) File.WriteAllBytes(ico, TaiNguyen("may-rang-otl.ico"));
         string url = Path.Combine(desktop, ten + ".url"), lnk = Path.Combine(desktop, ten + ".lnk");
-        string trinhDuyet = TimTrinhDuyet();
-        string tep;
-        if (trinhDuyet != null)
+        if (File.Exists(url)) File.Delete(url);   // icon bản 1.0
+        Type loai = Type.GetTypeFromProgID("WScript.Shell");
+        object shell = Activator.CreateInstance(loai);
+        try
         {
-            if (File.Exists(url)) File.Delete(url);   // icon bản cũ
-            Type loai = Type.GetTypeFromProgID("WScript.Shell");
-            object shell = Activator.CreateInstance(loai);
-            try
-            {
-                object sc = loai.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, new object[] { lnk });
-                Type t = sc.GetType();
-                t.InvokeMember("TargetPath", BindingFlags.SetProperty, null, sc, new object[] { trinhDuyet });
-                t.InvokeMember("Arguments", BindingFlags.SetProperty, null, sc, new object[] { ThamSoManHinh(m) });
-                t.InvokeMember("IconLocation", BindingFlags.SetProperty, null, sc, new object[] { ico + ",0" });
-                t.InvokeMember("Description", BindingFlags.SetProperty, null, sc, new object[] { "Màn hình máy rang OTL " + m.Ip });
-                t.InvokeMember("Save", BindingFlags.InvokeMethod, null, sc, null);
-                Marshal.FinalReleaseComObject(sc);
-            }
-            finally { Marshal.FinalReleaseComObject(shell); }
-            tep = lnk;
+            object sc = loai.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, new object[] { lnk });
+            Type t = sc.GetType();
+            t.InvokeMember("TargetPath", BindingFlags.SetProperty, null, sc, new object[] { ExeCai });
+            t.InvokeMember("Arguments", BindingFlags.SetProperty, null, sc, new object[] { GiaoThuc + "://mo/" + m.Ip });
+            t.InvokeMember("IconLocation", BindingFlags.SetProperty, null, sc, new object[] { ico + ",0" });
+            t.InvokeMember("Description", BindingFlags.SetProperty, null, sc, new object[] { "Màn hình máy rang OTL " + m.Ip });
+            t.InvokeMember("Save", BindingFlags.InvokeMethod, null, sc, null);
+            Marshal.FinalReleaseComObject(sc);
         }
-        else
-        {
-            if (File.Exists(lnk)) File.Delete(lnk);
-            // .url là tệp INI; Windows đọc theo bảng mã ANSI.
-            File.WriteAllText(url, "[InternetShortcut]\r\nURL=" + m.Url + "\r\nIconFile=" + ico + "\r\nIconIndex=0\r\n", Encoding.Default);
-            tep = url;
-        }
-        SHChangeNotify(0x00002000 /*SHCNE_UPDATEITEM*/, 0x0005 /*SHCNF_PATHW*/, tep, IntPtr.Zero);
-        Log("Tạo icon " + tep + " → " + m.Url);
+        finally { Marshal.FinalReleaseComObject(shell); }
+        SHChangeNotify(0x00002000 /*SHCNE_UPDATEITEM*/, 0x0005 /*SHCNF_PATHW*/, lnk, IntPtr.Zero);
+        Log("Tạo icon " + lnk + " → " + m.Url);
         return ten;
     }
 
@@ -432,20 +423,65 @@ static class TimMayRang
         return null;
     }
 
+    // Mỗi máy một hồ sơ: mở máy này không đá cửa sổ máy kia, đăng nhập WebRH nhớ riêng từng máy.
+    static string HoSo(May m) { return Path.Combine(thuMucApp, "trinh-duyet", m.Ip); }
+
+    // --kiosk chứ không --app --start-fullscreen: hồ sơ đã nhớ khung cửa sổ của lần trước thì Edge bỏ qua
+    // --start-fullscreen (đo 02/11/2026: mở lần 2 ra nửa màn hình); kiosk lần nào cũng phủ kín. Đóng bằng Alt+F4.
+    // --test-type: tắt thanh "You're using an unsupported command-line flag" Edge hiện vì cờ ghim chứng chỉ.
     static string ThamSoManHinh(May m)
     {
-        string hoSo = Path.Combine(thuMucApp, "trinh-duyet");
-        string a = "--app=\"" + m.Url + "\" --start-fullscreen --user-data-dir=\"" + hoSo + "\" --no-first-run --no-default-browser-check";
+        string a = "--kiosk \"" + m.Url + "\" --edge-kiosk-type=fullscreen --user-data-dir=\"" + HoSo(m) + "\" --no-first-run --no-default-browser-check --test-type";
         string spki = null;
         try { spki = SpkiChungChi(m.Ip); } catch (Exception e) { Log("Không đọc được chứng chỉ " + m.Ip + ": " + e.Message); }
         if (spki != null) a += " --ignore-certificate-errors-spki-list=" + spki;
         return a;
     }
 
+    // Edge của hồ sơ này đang chạy thì lệnh mở mới bị giao cho tiến trình cũ và mất --start-fullscreen (khách
+    // chụp được: cửa sổ có thanh tiêu đề). Có cửa sổ thì đưa nó lên, không mở thêm; chạy ngầm không cửa sổ thì
+    // tắt để lần mở này nhận đủ cờ.
+    static bool DuaCuaSoCuLen(string hoSo)
+    {
+        string dau = "--user-data-dir=\"" + hoSo + "\"";
+        var pid = new List<int>();
+        using (var s = new ManagementObjectSearcher("SELECT ProcessId, CommandLine FROM Win32_Process WHERE Name='msedge.exe' OR Name='chrome.exe'"))
+            foreach (ManagementBaseObject o in s.Get())
+            {
+                string cl = o["CommandLine"] as string;
+                if (cl != null && cl.IndexOf(dau, StringComparison.OrdinalIgnoreCase) >= 0) pid.Add(Convert.ToInt32(o["ProcessId"]));
+            }
+        foreach (int id in pid)
+        {
+            try
+            {
+                IntPtr h = Process.GetProcessById(id).MainWindowHandle;
+                if (h == IntPtr.Zero) continue;
+                if (IsIconic(h)) ShowWindow(h, 9 /*SW_RESTORE*/);
+                SetForegroundWindow(h);
+                Log("Màn hình máy đang mở, đưa lên trước (pid " + id + ")");
+                return true;
+            }
+            catch (ArgumentException) { }   // tiến trình vừa thoát
+        }
+        if (pid.Count > 0)
+        {
+            foreach (int id in pid) { try { Process.GetProcessById(id).Kill(); } catch (ArgumentException) { } catch (InvalidOperationException) { } }
+            Log("Tắt " + pid.Count + " tiến trình Edge chạy ngầm của hồ sơ máy");
+            Thread.Sleep(500);
+        }
+        return false;
+    }
+
+    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int lenh);
+    [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+
     static void MoMay(May m)
     {
         string trinhDuyet = TimTrinhDuyet();
         if (trinhDuyet == null) { MoTrinhDuyet(m.Url); return; }
+        if (thuMucThu == null && DuaCuaSoCuLen(HoSo(m))) return;
         string thamSo = ThamSoManHinh(m);
         if (thuMucThu != null) { Log("Mở màn hình máy (bài thử, bỏ qua): " + trinhDuyet + " " + thamSo); return; }
         try { Process.Start(trinhDuyet, thamSo); Log("Mở màn hình máy " + m.Url); }

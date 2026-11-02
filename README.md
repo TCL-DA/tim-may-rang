@@ -49,12 +49,14 @@ Khi dò, phần mềm:
 4. Có đúng một máy sẵn sàng thì mở trang đó và tạo icon `Máy rang OTL` ngoài desktop. Có
    nhiều máy thì mỗi máy một icon `Máy rang OTL (<ip>)` và khách chọn máy cần mở.
 
-Màn hình máy mở bằng Edge (không có thì Chrome) ở chế độ ứng dụng toàn màn hình: không thanh địa chỉ,
-không tab; F11 thu về cửa sổ, Alt+F4 đóng. Trình duyệt chạy hồ sơ riêng
-`%LOCALAPPDATA%\OTL\TimMayRang\trinh-duyet` và ghim đúng chứng chỉ tự ký của panel
-(`--ignore-certificate-errors-spki-list`, SHA-256 của khoá công khai), nên khách không gặp trang
-"kết nối không riêng tư". Icon desktop là `.lnk` mang đúng các cờ đó. Máy không có Edge/Chrome thì
-quay về `.url` mở bằng trình duyệt mặc định.
+Màn hình máy mở bằng Edge (không có thì Chrome) chế độ **kiosk**: phủ kín màn hình, không thanh địa chỉ,
+không tab, đóng bằng Alt+F4. Không dùng `--app --start-fullscreen` vì hồ sơ đã nhớ khung cửa sổ lần trước
+thì Edge bỏ qua `--start-fullscreen`. Mỗi máy một hồ sơ riêng `%LOCALAPPDATA%\OTL\TimMayRang\trinh-duyet\<ip>`;
+phần mềm ghim đúng chứng chỉ tự ký của panel (`--ignore-certificate-errors-spki-list`, SHA-256 của khoá
+công khai) nên khách không gặp trang "kết nối không riêng tư", và thêm `--test-type` để Edge không hiện
+thanh cảnh báo vì cờ đó. Màn hình máy đang mở thì bấm lại chỉ đưa cửa sổ đó lên, không mở cửa sổ thứ hai.
+
+Icon desktop `Máy rang OTL` là `.lnk` gọi phần mềm đã cài với `otl-tim://mo/<ip>`.
 
 Không thấy máy thì khách nhập IP ghi trên màn hình máy. Phần mềm chỉ nhận IP mạng nội bộ và chỉ mở
 địa chỉ đã nhận dạng là màn hình máy rang. Hai lần bấm dồn thì lần sau bỏ qua (mutex).

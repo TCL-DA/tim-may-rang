@@ -9,7 +9,7 @@ OTL TÌM MÁY RANG
 Nếu Windows hiện "Windows đã bảo vệ máy tính của bạn": bấm "Thông tin thêm" rồi "Vẫn chạy".
 Trình duyệt hỏi "Mở OTL Tim may rang?": tích "Luôn cho phép" rồi bấm "Mở".
 
-Màn hình máy: F11 để thu về cửa sổ, Alt + F4 để đóng.
+Màn hình máy chiếm trọn màn hình. Nhấn Alt + F4 để đóng.
 
 Không tìm thấy máy: gọi OTL 0936 198 938 và gửi kèm tệp nhật ký
 %LOCALAPPDATA%\OTL\TimMayRang\nhat-ky.txt

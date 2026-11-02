@@ -13,7 +13,7 @@ $exe = Join-Path $thuMucGoi 'OTL Tim May Rang.exe'
 
 & $csc /nologo /target:winexe /optimize+ /codepage:65001 /platform:anycpu `
   "/win32icon:$PSScriptRoot\may-rang-otl.ico" "/out:$exe" `
-  /r:System.dll /r:System.Core.dll "/resource:$PSScriptRoot\may-rang-otl.ico,may-rang-otl.ico" `
+  /r:System.dll /r:System.Core.dll /r:System.Management.dll "/resource:$PSScriptRoot\may-rang-otl.ico,may-rang-otl.ico" `
   "$PSScriptRoot\TimMayRang.cs"
 if ($LASTEXITCODE -ne 0) { throw "csc lỗi $LASTEXITCODE" }
 
