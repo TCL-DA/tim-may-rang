@@ -32,7 +32,9 @@ static class TimMayRang
     const string Ban = "1.0";
     const int CongDau = 47830;          // cổng localhost; bận thì thử 9 cổng kế tiếp
     const int ChoNoiMs = 700;           // chờ một cổng TCP trả lời
-    const string DuongManHinh = "/WebRH"; // trang web client của màn hình WinCC Unified
+    // Trang web client WinCC Unified: panel Unified Comfort để ở /device/WebRH (/WebRH của panel là 503
+    // của Industrial Edge, đo trên MTP1200 02/11/2026); Unified PC Runtime để ở /WebRH.
+    static readonly string[] DuongManHinh = { "/device/WebRH", "/WebRH" };
 
     static int cong;
     static DateTime lanCuoiTrang = DateTime.Now;
@@ -68,6 +70,8 @@ static class TimMayRang
 
         ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; // màn hình máy dùng chứng chỉ tự ký
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
+        try { ServicePointManager.SecurityProtocol |= (SecurityProtocolType)12288; }   // TLS 1.3, có từ .NET 4.8 trên Windows 11
+        catch (NotSupportedException) { }
         ServicePointManager.DefaultConnectionLimit = 64;
 
         if (args.Length >= 2 && args[0] == "--do")   // dò không cần trình duyệt, in kết quả ra nhật ký: --do 192.168.0.0/24
@@ -355,32 +359,38 @@ static class TimMayRang
     }
 
     // Màn hình máy rang OTL là panel Siemens WinCC Unified: mở 443 (web), 102 (S7), 5900 (VNC).
-    // PLC S7 cũng mở 102 (+443 nếu bật web server) nhưng không có VNC và không có /WebRH.
+    // PLC S7 cũng mở 102 (+443 nếu bật web server) nhưng không có VNC và không có trang WebRH.
     static async Task<May> NhanDang(IPAddress ip)
     {
         Task<bool> s7 = CongMo(ip, 102), vnc = CongMo(ip, 5900);
-        int ma = 0; string noiDung = "";
-        try
+        int maCuoi = 0;
+        foreach (string duong in DuongManHinh)
         {
-            var r = (HttpWebRequest)WebRequest.Create("https://" + ip + DuongManHinh);
-            r.Timeout = 4000; r.ReadWriteTimeout = 4000; r.AllowAutoRedirect = false;
-            r.UserAgent = "OTL-Tim-May-Rang/" + Ban;
-            using (var p = (HttpWebResponse)await LayTraLoi(r)) { ma = (int)p.StatusCode; noiDung = DocDauTraLoi(p); }
+            int ma = 0; string noiDung = "";
+            try
+            {
+                var r = (HttpWebRequest)WebRequest.Create("https://" + ip + duong);
+                r.Timeout = 4000; r.ReadWriteTimeout = 4000; r.AllowAutoRedirect = false;
+                r.UserAgent = "OTL-Tim-May-Rang/" + Ban;
+                using (var p = (HttpWebResponse)await LayTraLoi(r)) { ma = (int)p.StatusCode; noiDung = DocDauTraLoi(p); }
+            }
+            catch (WebException e)
+            {
+                var p = e.Response as HttpWebResponse;
+                if (p != null) { ma = (int)p.StatusCode; noiDung = DocDauTraLoi(p); p.Close(); }
+                else Log("Hỏi " + ip + duong + " lỗi: " + e.Status + " " + e.Message);
+            }
+            catch (Exception e) { Log("Hỏi " + ip + duong + " lỗi: " + e.Message); }
+            if (maCuoi == 0) maCuoi = ma;
+            // Web client bật thì trang trả "<title>WinCC Unified RT</title>" (đo trên MTP1200 và Unified PC RT V19).
+            string t = noiDung.ToLowerInvariant();
+            if (ma >= 200 && ma < 500 && ma != 404 && (t.Contains("wincc unified") || t.Contains("webrh")))
+                return new May { Ip = ip.ToString(), Url = "https://" + ip + duong, MaHttp = ma, TrangThai = "san-sang" };
         }
-        catch (WebException e)
-        {
-            var p = e.Response as HttpWebResponse;
-            if (p != null) { ma = (int)p.StatusCode; noiDung = DocDauTraLoi(p); p.Close(); }
-        }
-        catch { }
-        bool coS7 = await s7, coVnc = await vnc;
-        string t = noiDung.ToLowerInvariant();
-        // Web client bật thì /WebRH trả trang "<title>WinCC Unified RT</title>" (đo trên Unified PC RT V19).
-        bool sanSang = ma >= 200 && ma < 500 && ma != 404 && (t.Contains("wincc unified") || t.Contains("webrh"));
-        // Web client tắt thì /WebRH trả 503 (đo trên MTP1200), còn cổng S7 + VNC của panel vẫn mở.
-        bool chuaBat = !sanSang && (ma == 503 || ma == 0) && coS7 && coVnc;
-        if (!sanSang && !chuaBat) return null;
-        return new May { Ip = ip.ToString(), Url = "https://" + ip + DuongManHinh, MaHttp = ma, TrangThai = sanSang ? "san-sang" : "chua-bat-web" };
+        // Không đường nào ra trang runtime mà cổng S7 + VNC của panel vẫn mở = panel chưa bật Web client.
+        if (await s7 && await vnc)
+            return new May { Ip = ip.ToString(), Url = "https://" + ip + DuongManHinh[0], MaHttp = maCuoi, TrangThai = "chua-bat-web" };
+        return null;
     }
 
     static Task<WebResponse> LayTraLoi(HttpWebRequest r)

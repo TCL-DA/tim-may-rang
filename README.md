@@ -15,11 +15,14 @@ trình duyệt mặc định. Bấm nút, phần mềm sẽ:
    dò /24 quanh máy tính.
 2. Thử cổng 443 trên mọi địa chỉ (192 kết nối song song, mỗi kết nối chờ 0,7 s). Một dải /24 xong
    trong khoảng 1,5 giây.
-3. Nhận dạng màn hình máy rang (panel Siemens WinCC Unified):
-   - `https://<ip>/WebRH` trả trang `WinCC Unified RT` → **sẵn sàng**;
-   - `/WebRH` trả 503 mà cổng S7 102 và VNC 5900 đều mở → panel chưa bật Web client, trang báo khách
-     gọi kỹ thuật.
-4. Có đúng một máy sẵn sàng thì mở `https://<ip>/WebRH` và tạo `Máy rang OTL.url` ngoài desktop. Có
+3. Nhận dạng màn hình máy rang (Siemens WinCC Unified), thử lần lượt hai đường:
+   - `https://<ip>/device/WebRH`: panel Unified Comfort (MTP…). `/WebRH` của panel luôn trả 503 của
+     Industrial Edge, không phải trang runtime;
+   - `https://<ip>/WebRH`: Unified PC Runtime.
+
+   Đường nào trả trang `WinCC Unified RT` thì máy **sẵn sàng**. Không đường nào ra mà cổng S7 102 và
+   VNC 5900 đều mở thì panel chưa bật Web client, trang báo khách gọi kỹ thuật.
+4. Có đúng một máy sẵn sàng thì mở trang đó và tạo `Máy rang OTL.url` ngoài desktop. Có
    nhiều máy thì mỗi máy một icon `Máy rang OTL (<ip>)` và khách chọn máy cần mở.
 
 Không thấy máy thì khách nhập IP ghi trên màn hình máy. Phần mềm chỉ nhận IP mạng nội bộ và chỉ mở
@@ -32,8 +35,8 @@ GitHub Pages (trình duyệt không được quét mạng) thì hiện nút **T�
 
 ## Máy rang cần gì
 
-Project WinCC Unified của panel phải bật **Web client** và có tài khoản đăng nhập web cho khách. Chưa bật
-thì `/WebRH` trả 503 và phần mềm báo "chưa xem từ máy tính được".
+Project WinCC Unified của panel phải bật **Web client** và có tài khoản đăng nhập web cho khách. Đã thử
+với MTP1200 OTL-30 (192.168.100.245, 02/11/2026): dò ra, mở `https://<ip>/device/WebRH`.
 
 ## Build
 

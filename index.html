@@ -342,6 +342,7 @@ ol.buoc li{margin:0 0 8px}
   function thuIp() {
     var ip = $('oIp').value.trim(), loi = $('loiIp');
     loi.hidden = true;
+    if (!ip) { loi.textContent = 'Gõ địa chỉ IP ghi trên màn hình máy vào ô, ví dụ 192.168.0.20.'; loi.hidden = false; $('oIp').focus(); return; }
     json('api/thu?ip=' + encodeURIComponent(ip)).then(function (m) {
       if (m.loi === 'ip-sai') { loi.textContent = 'Địa chỉ phải có dạng 192.168.x.x, 10.x.x.x hoặc 172.16.x.x tới 172.31.x.x.'; loi.hidden = false; return; }
       if (m.loi === 'khong-phai-may') { loi.textContent = 'Địa chỉ ' + ip + ' có trả lời nhưng không phải màn hình máy rang. Kiểm lại số trên màn hình máy.'; loi.hidden = false; return; }
