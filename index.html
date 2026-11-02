@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tìm máy rang cà phê</title>
+<meta name="description" content="Tra cứu và lọc máy rang cà phê theo khối lượng mẻ, kiểu truyền nhiệt, nguồn nhiệt, mức tự động và nước sản xuất.">
+<style>
+  :root{
+    --bg:#f6f6f4; --panel:#fff; --ink:#111; --ink-2:#555; --line:#d8d8d4;
+    --warn:#8a5a00; --warn-bg:#fdf3e0;
+    --r:10px; --gut:16px;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#121212; --panel:#1b1b1b; --ink:#ededed; --ink-2:#a3a3a3; --line:#333;
+      --warn:#e8b45c; --warn-bg:#2a2112;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#121212; --panel:#1b1b1b; --ink:#ededed; --ink-2:#a3a3a3; --line:#333;
+    --warn:#e8b45c; --warn-bg:#2a2112;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:28px var(--gut) 64px}
+  header h1{font-size:22px; letter-spacing:-.01em; margin:0 0 4px}
+  header p{margin:0; color:var(--ink-2); font-size:13.5px}
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--r);
+    padding:14px; margin:20px 0;
+  }
+  .row{display:flex; flex-wrap:wrap; gap:10px}
+  label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-2); margin-bottom:4px}
+  input[type=search],select{
+    width:100%; padding:9px 10px; font:inherit; color:var(--ink);
+    background:var(--panel); border:1px solid var(--line); border-radius:6px;
+  }
+  input[type=search]{font-family:var(--mono)}
+  .f{flex:1 1 150px; min-width:0}
+  .f-wide{flex:2 1 260px}
+  .meta{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin:0 0 10px}
+  .count{font-family:var(--mono); font-size:13px; color:var(--ink-2)}
+  button.link{
+    background:none; border:0; padding:0; color:var(--ink); font:inherit;
+    text-decoration:underline; cursor:pointer;
+  }
+  table{width:100%; border-collapse:collapse; font-size:14px}
+  th,td{text-align:left; padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{
+    font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-2);
+    font-weight:600; cursor:pointer; white-space:nowrap; user-select:none;
+  }
+  th[aria-sort]{color:var(--ink)}
+  td.kg{font-family:var(--mono); white-space:nowrap}
+  .model{font-weight:600}
+  .hang{color:var(--ink-2); font-size:13px}
+  .tag{
+    display:inline-block; font-size:11px; padding:1px 6px; border:1px solid var(--line);
+    border-radius:999px; color:var(--ink-2); white-space:nowrap;
+  }
+  .chua-kiem{color:var(--warn); background:var(--warn-bg); border-color:transparent}
+  a{color:var(--ink)}
+  .empty{padding:28px 8px; color:var(--ink-2); text-align:center}
+  footer{margin-top:28px; color:var(--ink-2); font-size:12.5px}
+  @media (max-width:640px){
+    thead{display:none}
+    tr{display:block; border-bottom:1px solid var(--line); padding:10px 0}
+    td{display:block; border:0; padding:2px 0}
+    td.kg::after{content:" kg mỗi mẻ"; color:var(--ink-2); font-family:system-ui}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Tìm máy rang cà phê</h1>
+    <p>Lọc theo khối lượng mẻ, kiểu truyền nhiệt, nguồn nhiệt, mức tự động và nước sản xuất.</p>
+  </header>
+
+  <div class="panel">
+    <div class="row">
+      <div class="f f-wide">
+        <label for="q">Tìm hãng / model</label>
+        <input type="search" id="q" placeholder="probat, w6a, loring…" autocomplete="off">
+      </div>
+      <div class="f">
+        <label for="kg">Mẻ (kg)</label>
+        <select id="kg">
+          <option value="">Tất cả</option>
+          <option value="0-2">dưới 2</option>
+          <option value="2-7">2 – 7</option>
+          <option value="7-15">7 – 15</option>
+          <option value="15-30">15 – 30</option>
+          <option value="30-9999">trên 30</option>
+        </select>
+      </div>
+      <div class="f"><label for="kieu">Kiểu</label><select id="kieu"></select></div>
+      <div class="f"><label for="nhiet">Nguồn nhiệt</label><select id="nhiet"></select></div>
+      <div class="f"><label for="tudong">Tự động</label><select id="tudong"></select></div>
+      <div class="f"><label for="nuoc">Nước</label><select id="nuoc"></select></div>
+    </div>
+  </div>
+
+  <div class="meta">
+    <span class="count" id="count">đang tải…</span>
+    <button class="link" id="reset" type="button">Bỏ hết bộ lọc</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th data-k="model">Máy</th>
+        <th data-k="kg">Mẻ</th>
+        <th data-k="kieu">Kiểu</th>
+        <th data-k="nhiet">Nhiệt</th>
+        <th data-k="tu_dong">Tự động</th>
+        <th data-k="nuoc">Nước</th>
+      </tr>
+    </thead>
+    <tbody id="body"></tbody>
+  </table>
+  <div class="empty" id="empty" hidden>Không có máy nào khớp. Thử bỏ một bộ lọc.</div>
+
+  <footer>
+    Dữ liệu nằm ở <code>du-lieu/may-rang.json</code> — sửa trực tiếp trên GitHub để thêm máy.
+    Thẻ <span class="tag chua-kiem">chưa kiểm</span> nghĩa là thông số chưa đối chiếu với catalog của hãng.
+  </footer>
+</div>
+
+<script>
+const COT = ['kieu', 'nhiet', 'tu_dong', 'nuoc'];
+const ID_SELECT = { kieu: 'kieu', nhiet: 'nhiet', tu_dong: 'tudong', nuoc: 'nuoc' };
+let may = [], sortK = 'kg', sortDir = 1;
+
+const el = id => document.getElementById(id);
+const soKg = m => typeof m.kg === 'number' ? m.kg : 0;
+const thoat = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function dungSelect() {
+  for (const k of COT) {
+    const giaTri = [...new Set(may.map(m => m[k]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi'));
+    el(ID_SELECT[k]).innerHTML = '<option value="">Tất cả</option>' +
+      giaTri.map(v => `<option value="${thoat(v)}">${thoat(v)}</option>`).join('');
+  }
+}
+
+function loc() {
+  const q = el('q').value.trim().toLowerCase();
+  const [lo, hi] = (el('kg').value || '0-99999').split('-').map(Number);
+  const bo = {};
+  for (const k of COT) bo[k] = el(ID_SELECT[k]).value;
+
+  const ds = may.filter(m => {
+    if (q && !`${m.hang} ${m.model}`.toLowerCase().includes(q)) return false;
+    const kg = soKg(m);
+    if (kg < lo || kg > hi) return false;
+    for (const k of COT) if (bo[k] && m[k] !== bo[k]) return false;
+    return true;
+  });
+
+  ds.sort((a, b) => {
+    const A = a[sortK], B = b[sortK];
+    const r = typeof A === 'number' && typeof B === 'number'
+      ? A - B
+      : String(A ?? '').localeCompare(String(B ?? ''), 'vi');
+    return r * sortDir;
+  });
+
+  ve(ds);
+}
+
+const o = v => v ? `<span class="tag">${thoat(v)}</span>` : '';
+
+function ve(ds) {
+  el('count').textContent = `${ds.length} / ${may.length} máy`;
+  el('empty').hidden = ds.length > 0;
+  el('body').innerHTML = ds.map(m => {
+    const ten = m.nguon
+      ? `<a href="${thoat(m.nguon)}" target="_blank" rel="noopener">${thoat(m.model)}</a>`
+      : thoat(m.model);
+    const canKiem = m.da_kiem ? '' : ' <span class="tag chua-kiem">chưa kiểm</span>';
+    return `<tr>
+      <td><div class="model">${ten}${canKiem}</div><div class="hang">${thoat(m.hang)}</div></td>
+      <td class="kg">${thoat(m.kg)}</td>
+      <td>${o(m.kieu)}</td>
+      <td>${o(m.nhiet)}</td>
+      <td>${o(m.tu_dong)}</td>
+      <td>${o(m.nuoc)}</td>
+    </tr>`;
+  }).join('');
+
+  document.querySelectorAll('th[data-k]').forEach(th => {
+    if (th.dataset.k === sortK) th.setAttribute('aria-sort', sortDir === 1 ? 'ascending' : 'descending');
+    else th.removeAttribute('aria-sort');
+  });
+}
+
+document.querySelectorAll('th[data-k]').forEach(th => {
+  th.addEventListener('click', () => {
+    const k = th.dataset.k;
+    if (k === sortK) sortDir = -sortDir; else { sortK = k; sortDir = 1; }
+    loc();
+  });
+});
+
+['q', 'kg', ...Object.values(ID_SELECT)].forEach(id => el(id).addEventListener('input', loc));
+
+el('reset').addEventListener('click', () => {
+  el('q').value = '';
+  el('kg').value = '';
+  for (const k of COT) el(ID_SELECT[k]).value = '';
+  loc();
+});
+
+fetch('du-lieu/may-rang.json')
+  .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+  .then(d => { may = d.may || []; dungSelect(); loc(); })
+  .catch(e => { el('count').textContent = 'Không đọc được dữ liệu: ' + e.message; });
+</script>
+</body>
+</html>
