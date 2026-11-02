@@ -34,12 +34,12 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("OTL Tìm máy rang")]
 [assembly: AssemblyProduct("OTL Tìm máy rang")]
 [assembly: AssemblyCompany("OTL Roaster")]
-[assembly: AssemblyVersion("1.1.0.0")]
-[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyVersion("1.2.0.0")]
+[assembly: AssemblyFileVersion("1.2.0.0")]
 
 static class TimMayRang
 {
-    const string Ban = "1.1";
+    const string Ban = "1.2";
     const string GiaoThuc = "otl-tim";
     const string TrangWeb = "https://tcl-da.github.io/tim-may-rang/";
     // Chờ một cổng TCP trả lời. Trong LAN máy có thật trả lời (SYN-ACK hoặc RST) trong vài ms; chỉ địa chỉ
@@ -76,6 +76,10 @@ static class TimMayRang
         thuMucApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OTL", "TimMayRang");
         Directory.CreateDirectory(thuMucApp);
         Log("Khởi động bản " + Ban + " " + string.Join(" ", args));
+        // Lỗi nào lọt khỏi các chỗ đã bắt cũng phải vào lịch sử.
+        AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            GhiLoi("Lỗi chương trình", e.ExceptionObject is Exception ? MoTaLoi((Exception)e.ExceptionObject) : "" + e.ExceptionObject);
+        TaskScheduler.UnobservedTaskException += (s, e) => { GhiLoi("Lỗi chương trình", MoTaLoi(e.Exception)); e.SetObserved(); };
 
         ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; // màn hình máy dùng chứng chỉ tự ký
         // Panel MTP1200 chỉ bắt tay TLS 1.3 (chỉ bật Tls12 thì mọi yêu cầu tới panel hỏng).
@@ -95,7 +99,7 @@ static class TimMayRang
 
         if (thuMucThu == null)
         {
-            try { CaiDat(); } catch (Exception e) { Log("Không cài được: " + e.Message); }
+            try { CaiDat(); } catch (Exception e) { GhiLoi("Cài phần mềm", "Không cài được: " + MoTaLoi(e)); }
             if (ds.Count > 0 && ds[0] == "--cai") return 0;   // chỉ cài, không dò
         }
 
@@ -105,54 +109,74 @@ static class TimMayRang
         {
             if (!moi) { Log("Đang có một lượt khác, bỏ qua"); return 0; }
             string lenh = ds.Count > 0 ? ds[0] : GiaoThuc + "://tim";
-            if (lenh.StartsWith(GiaoThuc + ":", StringComparison.OrdinalIgnoreCase)) ChayLenh(lenh);
-            else Log("Không hiểu tham số: " + lenh);
+            try
+            {
+                if (lenh.StartsWith(GiaoThuc + ":", StringComparison.OrdinalIgnoreCase)) ChayLenh(lenh);
+                else GhiLoi("Lỗi chương trình", "Không hiểu lệnh: " + lenh);
+            }
+            catch (Exception e) { GhiLoi("Lỗi chương trình", MoTaLoi(e)); }
         }
         return 0;
     }
 
     // otl-tim://tim          dò cả mạng
     // otl-tim://mo/<ip>      kiểm một địa chỉ (khách tự nhập, hoặc chọn một trong nhiều máy) rồi mở
+    // otl-tim://lich-su      mở trang lịch sử lỗi + thao tác
     static void ChayLenh(string lenh)
     {
         string than = lenh.Substring(GiaoThuc.Length + 1).Trim('/', ' ');
         string[] p = than.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
         string viec = p.Length > 0 ? p[0].ToLowerInvariant() : "tim";
-        if (viec == "mo" && p.Length > 1) Mo(Uri.UnescapeDataString(p[1]));
+        if (viec == "mo") Mo(p.Length > 1 ? Uri.UnescapeDataString(p[1]) : "");
+        else if (viec == "lich-su") MoLichSu();
         else Tim();
     }
 
     static void Tim()
     {
+        var dongHo = Stopwatch.StartNew();
         List<Dai> dai = LayDaiMang();
-        Log("Dò " + dai.Count + " dải: " + string.Join(", ", dai.Select(x => x.Ten + " " + x.Mang)));
-        if (dai.Count == 0) { BaoTrang("ket=khong-mang"); return; }
+        string mang = string.Join(", ", dai.Select(x => x.Ten + " " + x.Mang));
+        Log("Dò " + dai.Count + " dải: " + mang);
+        if (dai.Count == 0) { GhiLoi("Tìm máy rang", "Máy tính chưa nối mạng nào (Wi-Fi hoặc dây mạng)."); BaoTrang("ket=khong-mang"); return; }
 
         List<May> thay = DoMang(dai, ChoNoiMs).Result;
         if (thay.Count == 0) { Log("Lượt nhanh không thấy máy, dò lại chậm"); thay = DoMang(dai, ChoNoiChamMs).Result; }
         var sanSang = thay.Where(m => m.TrangThai == "san-sang").ToList();
         var chuaBat = thay.Where(m => m.TrangThai != "san-sang").ToList();
-        foreach (May m in sanSang)
-        {
-            try { TaoIcon(m, sanSang.Count > 1); }
-            catch (Exception e) { Log("Không tạo được icon: " + e.Message); }
-        }
+        long ms = dongHo.ElapsedMilliseconds;
+        foreach (May m in sanSang) TaoIcon(m, sanSang.Count > 1);
 
-        if (sanSang.Count == 1) { MoMay(sanSang[0]); return; }
-        if (sanSang.Count > 1) { BaoTrang("ket=nhieu&may=" + DanhSach(sanSang) + (chuaBat.Count > 0 ? "&chua=" + DanhSach(chuaBat) : "")); return; }
+        if (chuaBat.Count > 0)
+            GhiLoi("Tìm máy rang", "Thấy màn hình máy ở " + DanhSach(chuaBat) + " nhưng chưa bật chế độ xem từ máy tính.", ms);
+        if (sanSang.Count == 1)
+        {
+            GhiThaoTac("Tìm máy rang", "Thấy máy ở " + sanSang[0].Ip + ", mở màn hình máy.", ms);
+            MoMay(sanSang[0]);
+            return;
+        }
+        if (sanSang.Count > 1)
+        {
+            GhiThaoTac("Tìm máy rang", "Thấy " + sanSang.Count + " máy: " + DanhSach(sanSang) + ". Mỗi máy một icon, chờ chọn máy.", ms);
+            BaoTrang("ket=nhieu&may=" + DanhSach(sanSang) + (chuaBat.Count > 0 ? "&chua=" + DanhSach(chuaBat) : ""));
+            return;
+        }
         if (chuaBat.Count > 0) { BaoTrang("ket=chua-bat&chua=" + DanhSach(chuaBat)); return; }
-        BaoTrang("ket=khong-thay&mang=" + Uri.EscapeDataString(string.Join(", ", dai.Select(x => x.Ten + " " + x.Mang))));
+        GhiLoi("Tìm máy rang", "Không thấy máy rang nào. Đã dò " + mang + ".", ms);
+        BaoTrang("ket=khong-thay&mang=" + Uri.EscapeDataString(mang));
     }
 
     static void Mo(string v)
     {
         IPAddress ip;
-        if (!LaIpNoiBo(v, out ip)) { BaoTrang("ket=ip-sai&ip=" + Uri.EscapeDataString(v)); return; }
-        if (!CongMo(ip, 443, ChoNoiChamMs).Result) { BaoTrang("ket=khong-tra-loi&ip=" + ip); return; }
+        string viec = "Mở máy " + v;
+        if (!LaIpNoiBo(v, out ip)) { GhiLoi(viec, "Không phải địa chỉ IP mạng nội bộ (192.168.x.x, 10.x.x.x, 172.16–31.x.x)."); BaoTrang("ket=ip-sai&ip=" + Uri.EscapeDataString(v)); return; }
+        if (!CongMo(ip, 443, ChoNoiChamMs).Result) { GhiLoi(viec, "Địa chỉ không trả lời."); BaoTrang("ket=khong-tra-loi&ip=" + ip); return; }
         May m = NhanDang(ip, ChoNoiChamMs).Result;
-        if (m == null) { BaoTrang("ket=khong-phai-may&ip=" + ip); return; }
-        if (m.TrangThai != "san-sang") { BaoTrang("ket=chua-bat&chua=" + ip); return; }
-        try { TaoIcon(m, false); } catch (Exception e) { Log("Không tạo được icon: " + e.Message); }
+        if (m == null) { GhiLoi(viec, "Có trả lời nhưng không phải màn hình máy rang."); BaoTrang("ket=khong-phai-may&ip=" + ip); return; }
+        if (m.TrangThai != "san-sang") { GhiLoi(viec, "Màn hình máy chưa bật chế độ xem từ máy tính."); BaoTrang("ket=chua-bat&chua=" + ip); return; }
+        TaoIcon(m, false);
+        GhiThaoTac(viec, "Mở màn hình máy.");
         MoMay(m);
     }
 
@@ -178,8 +202,10 @@ static class TimMayRang
             Directory.CreateDirectory(dich);
             if (!File.Exists(exeDich) || !File.ReadAllBytes(exeDich).SequenceEqual(File.ReadAllBytes(exeNay)))
             {
+                bool capNhat = File.Exists(exeDich);
                 File.Copy(exeNay, exeDich, true);
                 Log("Đã chép phần mềm vào " + exeDich);
+                GhiThaoTac("Cài phần mềm", (capNhat ? "Cập nhật lên bản " : "Cài bản ") + Ban + " cho máy tính này.");
             }
         }
         using (RegistryKey k = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + GiaoThuc))
@@ -366,14 +392,21 @@ static class TimMayRang
     // .lnk gọi lại chính phần mềm đã cài với otl-tim://mo/<ip>, không gọi thẳng Edge: bấm icon khi cửa sổ
     // máy đang mở thì phải đưa cửa sổ đó lên (MoMay), và chứng chỉ panel đổi thì lần mở sau ghim lại đúng.
 
-    static string TaoIcon(May m, bool nhieuMay)
+    static void TaoIcon(May m, bool nhieuMay)
+    {
+        string ten = nhieuMay ? "Máy rang OTL (" + m.Ip + ")" : "Máy rang OTL";
+        try { TaoIcon(m, ten); }
+        catch (Exception e) { GhiLoi("Tạo icon", "Không tạo được icon \"" + ten + "\" ngoài desktop: " + MoTaLoi(e)); }
+    }
+
+    static void TaoIcon(May m, string ten)
     {
         string desktop = thuMucThu ?? Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-        string ten = nhieuMay ? "Máy rang OTL (" + m.Ip + ")" : "Máy rang OTL";
         string ico = Path.Combine(thuMucApp, "may-rang-otl.ico");
         if (!File.Exists(ico)) File.WriteAllBytes(ico, TaiNguyen("may-rang-otl.ico"));
         string url = Path.Combine(desktop, ten + ".url"), lnk = Path.Combine(desktop, ten + ".lnk");
         if (File.Exists(url)) File.Delete(url);   // icon bản 1.0
+        bool daCo = File.Exists(lnk);
         Type loai = Type.GetTypeFromProgID("WScript.Shell");
         object shell = Activator.CreateInstance(loai);
         try
@@ -390,7 +423,7 @@ static class TimMayRang
         finally { Marshal.FinalReleaseComObject(shell); }
         SHChangeNotify(0x00002000 /*SHCNE_UPDATEITEM*/, 0x0005 /*SHCNF_PATHW*/, lnk, IntPtr.Zero);
         Log("Tạo icon " + lnk + " → " + m.Url);
-        return ten;
+        if (!daCo) GhiThaoTac("Tạo icon", "Tạo icon \"" + ten + "\" ngoài desktop, mở máy " + m.Ip + ".");
     }
 
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
@@ -433,7 +466,8 @@ static class TimMayRang
     {
         string a = "--kiosk \"" + m.Url + "\" --edge-kiosk-type=fullscreen --user-data-dir=\"" + HoSo(m) + "\" --no-first-run --no-default-browser-check --test-type";
         string spki = null;
-        try { spki = SpkiChungChi(m.Ip); } catch (Exception e) { Log("Không đọc được chứng chỉ " + m.Ip + ": " + e.Message); }
+        try { spki = SpkiChungChi(m.Ip); }
+        catch (Exception e) { GhiLoi("Mở màn hình máy", "Không đọc được chứng chỉ của máy " + m.Ip + ", trình duyệt có thể báo kết nối không riêng tư: " + MoTaLoi(e)); }
         if (spki != null) a += " --ignore-certificate-errors-spki-list=" + spki;
         return a;
     }
@@ -460,6 +494,7 @@ static class TimMayRang
                 if (IsIconic(h)) ShowWindow(h, 9 /*SW_RESTORE*/);
                 SetForegroundWindow(h);
                 Log("Màn hình máy đang mở, đưa lên trước (pid " + id + ")");
+                GhiThaoTac("Mở màn hình máy", "Màn hình máy đang mở sẵn, đưa cửa sổ lên trước.");
                 return true;
             }
             catch (ArgumentException) { }   // tiến trình vừa thoát
@@ -480,12 +515,25 @@ static class TimMayRang
     static void MoMay(May m)
     {
         string trinhDuyet = TimTrinhDuyet();
-        if (trinhDuyet == null) { MoTrinhDuyet(m.Url); return; }
-        if (thuMucThu == null && DuaCuaSoCuLen(HoSo(m))) return;
+        if (trinhDuyet == null)
+        {
+            GhiLoi("Mở màn hình máy", "Máy tính không có Edge hoặc Chrome, mở bằng trình duyệt mặc định (không toàn màn hình).");
+            MoTrinhDuyet(m.Url);
+            return;
+        }
+        if (thuMucThu == null)
+        {
+            try { if (DuaCuaSoCuLen(HoSo(m))) return; }
+            catch (Exception e) { GhiLoi("Mở màn hình máy", "Không kiểm được cửa sổ máy đang mở: " + MoTaLoi(e)); }
+        }
         string thamSo = ThamSoManHinh(m);
         if (thuMucThu != null) { Log("Mở màn hình máy (bài thử, bỏ qua): " + trinhDuyet + " " + thamSo); return; }
         try { Process.Start(trinhDuyet, thamSo); Log("Mở màn hình máy " + m.Url); }
-        catch (Exception e) { Log("Không mở được " + trinhDuyet + ": " + e.Message); MoTrinhDuyet(m.Url); }
+        catch (Exception e)
+        {
+            GhiLoi("Mở màn hình máy", "Không mở được " + Path.GetFileName(trinhDuyet) + ", thử trình duyệt mặc định: " + MoTaLoi(e));
+            MoTrinhDuyet(m.Url);
+        }
     }
 
     // SHA-256 (base64) của SubjectPublicKeyInfo trong chứng chỉ máy đang dùng — dạng Chromium cần.
@@ -531,7 +579,71 @@ static class TimMayRang
     {
         if (thuMucThu != null) { Log("Mở trình duyệt (bài thử, bỏ qua): " + url); return; }
         try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
-        catch (Exception e) { Log("Không mở được trình duyệt: " + e.Message); }
+        catch (Exception e) { GhiLoi("Mở trình duyệt", "Không mở được trình duyệt mặc định: " + MoTaLoi(e)); }
+    }
+
+    // ── Lịch sử lỗi + thao tác ──────────────────────────────────────────────────────────────────
+    // lich-su.jsonl: mỗi dòng một mục {t, loai: "loi"|"thao-tac", viec, chiTiet, ms}. Khác nhat-ky.txt (dòng kỹ
+    // thuật cho người sửa phần mềm): đây là thứ khách đọc được và gửi cho OTL. Giữ 2000 mục mới nhất.
+
+    const int GiuMuc = 2000;
+
+    static void GhiThaoTac(string viec, string chiTiet, long ms = 0) { GhiLichSu("thao-tac", viec, chiTiet, ms); }
+    static void GhiLoi(string viec, string chiTiet, long ms = 0) { GhiLichSu("loi", viec, chiTiet, ms); }
+
+    static void GhiLichSu(string loai, string viec, string chiTiet, long ms)
+    {
+        Log((loai == "loi" ? "LỖI " : "THAO TÁC ") + viec + ": " + chiTiet);
+        string dong = "{\"t\":" + Js(DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss")) + ",\"loai\":" + Js(loai) + ",\"viec\":" + Js(viec) +
+            ",\"chiTiet\":" + Js(chiTiet) + (ms > 0 ? ",\"ms\":" + ms : "") + "}";
+        lock (khoaLog)
+        {
+            try
+            {
+                string tep = Path.Combine(thuMucApp, "lich-su.jsonl");
+                File.AppendAllText(tep, dong + "\n", new UTF8Encoding(false));
+                if (new FileInfo(tep).Length > 600000)
+                {
+                    string[] tat = File.ReadAllLines(tep, Encoding.UTF8);
+                    if (tat.Length > GiuMuc) File.WriteAllLines(tep, tat.Skip(tat.Length - GiuMuc), new UTF8Encoding(false));
+                }
+            }
+            catch { }
+        }
+    }
+
+    // Trang lịch sử: tệp HTML tĩnh dựng từ mẫu nhúng trong exe + dữ liệu lich-su.jsonl, mở bằng trình duyệt.
+    static void MoLichSu()
+    {
+        GhiThaoTac("Xem lịch sử", "Mở trang lịch sử lỗi và thao tác.");
+        string tep = Path.Combine(thuMucApp, "lich-su.jsonl");
+        string[] dong;
+        lock (khoaLog) dong = File.Exists(tep) ? File.ReadAllLines(tep, Encoding.UTF8) : new string[0];
+        string json = "[" + string.Join(",", dong.Where(d => d.StartsWith("{"))) + "]";
+        string mau = Encoding.UTF8.GetString(TaiNguyen("lich-su.html"));
+        string html = Path.Combine(thuMucApp, "lich-su.html");
+        File.WriteAllText(html, mau.Replace("/*DU_LIEU*/[]", json), new UTF8Encoding(false));
+        MoTrinhDuyet(html);
+    }
+
+    static string MoTaLoi(Exception e)
+    {
+        var a = e as AggregateException;
+        if (a != null && a.InnerExceptions.Count == 1) e = a.InnerExceptions[0];
+        return e.Message + " (" + e.GetType().Name + ")";
+    }
+
+    static string Js(string v)
+    {
+        var sb = new StringBuilder("\"");
+        foreach (char c in v ?? "")
+        {
+            if (c == '"' || c == '\\') sb.Append('\\').Append(c);
+            else if (c < 32 || c == (char)0x2028 || c == (char)0x2029) sb.Append("\\u").Append(((int)c).ToString("x4"));
+            else if (c == '<') sb.Append("\\u003c");   // dữ liệu chèn vào <script>, đừng để "</script>" đóng thẻ
+            else sb.Append(c);
+        }
+        return sb.Append('"').ToString();
     }
 
     static readonly object khoaLog = new object();

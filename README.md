@@ -27,6 +27,17 @@ Trình duyệt không được tự quét mạng trong quán, nên nút trên tr
 | bấm đúp exe tải về | chép vào `%LOCALAPPDATA%\Programs\OTL Tim May Rang`, đăng ký `otl-tim://` ở `HKCU\Software\Classes`, rồi dò như `otl-tim://tim` |
 | `otl-tim://tim` | dò cả mạng |
 | `otl-tim://mo/<ip>` | kiểm một địa chỉ (khách tự nhập, hoặc chọn một trong nhiều máy) rồi mở |
+| `otl-tim://lich-su` | mở trang lịch sử lỗi và thao tác |
+
+### lịch sử lỗi và thao tác
+
+Mọi thao tác (cài, tìm máy, mở máy, tạo icon, đưa cửa sổ máy đang mở lên, xem lịch sử) và mọi lỗi (không có
+mạng, không thấy máy, panel chưa bật web, IP sai / không trả lời / không phải máy rang, không tạo được icon,
+không mở được Edge, không đọc được chứng chỉ, và mọi lỗi chương trình lọt ra ngoài) ghi vào
+`%LOCALAPPDATA%\OTL\TimMayRang\lich-su.jsonl`, giữ 2000 mục mới nhất. Link **Xem lịch sử lỗi và thao tác** trên
+trang gọi `otl-tim://lich-su`: phần mềm dựng `lich-su.html` từ mẫu `app/lich-su.html` nhúng trong exe rồi mở bằng
+trình duyệt. Trang lọc Tất cả / Lỗi / Thao tác và có nút **Lưu tệp gửi OTL** (tệp .txt để gửi qua Zalo).
+`nhat-ky.txt` vẫn giữ dòng kỹ thuật chi tiết cho người sửa phần mềm.
 
 Đúng một máy sẵn sàng thì phần mềm mở luôn màn hình máy, không mở thêm gì. Các trường hợp còn lại nó
 mở lại trang với `#ket=…` để trang báo: `nhieu` (kèm `may=`), `chua-bat` (`chua=`), `khong-thay`

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lịch sử Tìm máy rang OTL</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+/* Cùng hệ với trang tcl-da.github.io/tim-may-rang: năm màu trung tính, không bo góc, không bóng, kẻ 1px.
+   Hổ phách chỉ dành cho dòng lỗi. Điểm đậm duy nhất là câu tóm tắt chữ lớn. */
+:root{
+  --nen:#F6F8F7; --than:#0F0E12; --muc:#000000; --net:#E5E5E5; --mo:#767676; --canh:#9A5205;
+  --font:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--nen);color:var(--muc)}
+body{font:300 16px/1.55 var(--font)}
+:focus-visible{outline:2px solid var(--muc);outline-offset:3px}
+.khung{max-width:1100px;margin:0 auto;padding:0 32px}
+
+.dau{display:flex;align-items:center;gap:22px;padding:22px 32px;border-bottom:1px solid var(--net);flex-wrap:wrap}
+.dau .ten{font-size:15px;color:var(--mo)}
+.dau .ten b{color:var(--muc);font-weight:400;letter-spacing:.12em;margin-right:12px}
+.nut{font:300 16px/1 var(--font);min-height:44px;padding:0 20px;border:1px solid var(--muc);background:transparent;color:var(--muc);cursor:pointer}
+.nut:hover{background:var(--muc);color:var(--nen)}
+.dau .nut{margin-left:auto}
+
+.tom{font-weight:200;font-size:clamp(28px,4vw,44px);line-height:1.15;letter-spacing:-.01em;margin:48px 0 10px;max-width:22ch}
+.tom-phu{color:var(--mo);margin:0 0 33px;max-width:70ch}
+
+.loc{display:flex;gap:0;border:1px solid var(--muc);width:max-content;max-width:100%;flex-wrap:wrap}
+.loc button{font:300 16px/1 var(--font);min-height:44px;padding:0 20px;border:0;border-right:1px solid var(--muc);background:transparent;color:var(--muc);cursor:pointer}
+.loc button:last-child{border-right:0}
+.loc button[aria-pressed="true"]{background:var(--than);color:var(--nen)}
+.loc span{font-variant-numeric:tabular-nums;margin-left:8px;opacity:.75}
+
+.ngay{font-size:14px;color:var(--mo);margin:40px 0 0;padding-bottom:8px;border-bottom:1px solid var(--muc)}
+ol{list-style:none;margin:0;padding:0}
+li.dong{display:grid;grid-template-columns:96px 200px 1fr auto;gap:18px;padding:14px 0 14px 14px;border-bottom:1px solid var(--net);border-left:3px solid transparent;align-items:baseline}
+li.dong.loi{border-left-color:var(--canh)}
+.gio{font-variant-numeric:tabular-nums;color:var(--mo)}
+.viec{font-weight:400}
+.loi .viec{color:var(--canh)}
+.loi .viec svg{width:15px;height:15px;vertical-align:-2px;margin-right:6px}
+.ct{max-width:70ch}
+.ms{font-size:14px;color:var(--mo);font-variant-numeric:tabular-nums;white-space:nowrap}
+.trong{margin:40px 0;padding:33px;border:1px solid var(--net);max-width:640px}
+.chan{font-size:13px;color:var(--mo);margin:56px 0 40px}
+[hidden]{display:none!important}
+
+@media (max-width:760px){
+  .khung,.dau{padding-left:16px;padding-right:16px}
+  .dau .nut{margin-left:0}
+  li.dong{grid-template-columns:72px 1fr;gap:4px 12px}
+  li.dong .ct,li.dong .ms{grid-column:2}
+}
+</style>
+</head>
+<body>
+<header class="dau">
+  <div class="ten"><b>OTL</b>Lịch sử phần mềm Tìm máy rang</div>
+  <button class="nut" type="button" id="nutLuu">Lưu tệp gửi OTL</button>
+</header>
+<main class="khung">
+  <h1 class="tom" id="tom"></h1>
+  <p class="tom-phu" id="tomPhu"></p>
+  <div class="loc" role="group" aria-label="Lọc lịch sử">
+    <button type="button" data-loc="tat-ca" aria-pressed="true">Tất cả<span id="dTatCa"></span></button>
+    <button type="button" data-loc="loi" aria-pressed="false">Lỗi<span id="dLoi"></span></button>
+    <button type="button" data-loc="thao-tac" aria-pressed="false">Thao tác<span id="dThaoTac"></span></button>
+  </div>
+  <div id="ds"></div>
+  <p class="chan">Lịch sử chỉ nằm trên máy tính này. Cần hỗ trợ: bấm <b>Lưu tệp gửi OTL</b> rồi gửi tệp qua Zalo
+    <b>0936 198 938</b>.</p>
+</main>
+<script>
+var D = /*DU_LIEU*/[];
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var ICON_LOI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function ngay(t) { return t.slice(8, 10) + '/' + t.slice(5, 7) + '/' + t.slice(0, 4); }
+  function giay(ms) { return (ms / 1000).toFixed(1).replace('.', ',') + ' s'; }
+
+  D.sort(function (a, b) { return a.t < b.t ? 1 : a.t > b.t ? -1 : 0; });   // mới nhất lên đầu
+  var soLoi = D.filter(function (d) { return d.loai === 'loi'; }).length, soTT = D.length - soLoi;
+  $('dTatCa').textContent = D.length; $('dLoi').textContent = soLoi; $('dThaoTac').textContent = soTT;
+  if (D.length) {
+    $('tom').textContent = (soLoi ? soLoi + ' lỗi và ' : 'Không có lỗi, ') + soTT + ' thao tác';
+    $('tomPhu').textContent = 'Từ ' + ngay(D[D.length - 1].t) + ' tới ' + ngay(D[0].t) + ', trên máy tính này.';
+  } else {
+    $('tom').textContent = 'Chưa có gì';
+    $('tomPhu').textContent = 'Lịch sử bắt đầu ghi từ lần bấm Tìm máy rang đầu tiên.';
+  }
+
+  var homNay = new Date(), hn = homNay.getFullYear() + '-' + ('0' + (homNay.getMonth() + 1)).slice(-2) + '-' + ('0' + homNay.getDate()).slice(-2);
+  function ve(loc) {
+    var h = '', nhom = null;
+    D.forEach(function (d) {
+      if (loc !== 'tat-ca' && d.loai !== loc) return;
+      var n = d.t.slice(0, 10);
+      if (n !== nhom) {
+        if (nhom !== null) h += '</ol>';
+        h += '<h2 class="ngay">' + (n === hn ? 'Hôm nay, ' : '') + ngay(d.t) + '</h2><ol>';
+        nhom = n;
+      }
+      var loi = d.loai === 'loi';
+      h += '<li class="dong' + (loi ? ' loi' : '') + '"><span class="gio">' + esc(d.t.slice(11, 19)) + '</span>' +
+        '<span class="viec">' + (loi ? ICON_LOI + 'Lỗi: ' : '') + esc(d.viec) + '</span>' +
+        '<span class="ct">' + esc(d.chiTiet) + '</span>' +
+        '<span class="ms">' + (d.ms ? giay(d.ms) : '') + '</span></li>';
+    });
+    if (nhom !== null) h += '</ol>';
+    $('ds').innerHTML = h || '<div class="trong">Không có mục nào ở đây.</div>';
+  }
+  ve('tat-ca');
+
+  Array.prototype.forEach.call(document.querySelectorAll('.loc button'), function (b) {
+    b.addEventListener('click', function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.loc button'), function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      ve(b.getAttribute('data-loc'));
+    });
+  });
+
+  $('nutLuu').addEventListener('click', function () {
+    var dong = ['Lich su phan mem Tim may rang OTL', 'Luu luc ' + new Date().toLocaleString('vi-VN'), ''];
+    D.forEach(function (d) {
+      dong.push(d.t.replace('T', ' ') + '  ' + (d.loai === 'loi' ? 'LOI      ' : 'THAO TAC ') + d.viec + ' | ' + (d.chiTiet || '') + (d.ms ? ' | ' + giay(d.ms) : ''));
+    });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + dong.join('\r\n')], { type: 'text/plain;charset=utf-8' }));
+    a.download = 'lich-su-tim-may-rang-' + hn + '.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    $('nutLuu').textContent = 'Đã lưu tệp';
+  });
+})();
+</script>
+</body>
+</html>
