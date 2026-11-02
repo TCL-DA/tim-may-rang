@@ -3,226 +3,355 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tìm máy rang cà phê</title>
-<meta name="description" content="Tra cứu và lọc máy rang cà phê theo khối lượng mẻ, kiểu truyền nhiệt, nguồn nhiệt, mức tự động và nước sản xuất.">
+<title>Tìm máy rang OTL</title>
+<meta name="description" content="Bấm một nút để tìm máy rang OTL trong mạng của quán, mở màn hình điều khiển trên máy tính và tạo icon ngoài desktop.">
+<link rel="icon" type="image/png" href="tai-nguyen/icon-otl.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#f6f6f4; --panel:#fff; --ink:#111; --ink-2:#555; --line:#d8d8d4;
-    --warn:#8a5a00; --warn-bg:#fdf3e0;
-    --r:10px; --gut:16px;
-    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
-  }
-  @media (prefers-color-scheme:dark){
-    :root:not([data-theme="light"]){
-      --bg:#121212; --panel:#1b1b1b; --ink:#ededed; --ink-2:#a3a3a3; --line:#333;
-      --warn:#e8b45c; --warn-bg:#2a2112;
-    }
-  }
-  :root[data-theme="dark"]{
-    --bg:#121212; --panel:#1b1b1b; --ink:#ededed; --ink-2:#a3a3a3; --line:#333;
-    --warn:#e8b45c; --warn-bg:#2a2112;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0}
-  body{
-    background:var(--bg); color:var(--ink);
-    font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-    -webkit-text-size-adjust:100%;
-  }
-  .wrap{max-width:1080px; margin:0 auto; padding:28px var(--gut) 64px}
-  header h1{font-size:22px; letter-spacing:-.01em; margin:0 0 4px}
-  header p{margin:0; color:var(--ink-2); font-size:13.5px}
-  .panel{
-    background:var(--panel); border:1px solid var(--line); border-radius:var(--r);
-    padding:14px; margin:20px 0;
-  }
-  .row{display:flex; flex-wrap:wrap; gap:10px}
-  label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-2); margin-bottom:4px}
-  input[type=search],select{
-    width:100%; padding:9px 10px; font:inherit; color:var(--ink);
-    background:var(--panel); border:1px solid var(--line); border-radius:6px;
-  }
-  input[type=search]{font-family:var(--mono)}
-  .f{flex:1 1 150px; min-width:0}
-  .f-wide{flex:2 1 260px}
-  .meta{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin:0 0 10px}
-  .count{font-family:var(--mono); font-size:13px; color:var(--ink-2)}
-  button.link{
-    background:none; border:0; padding:0; color:var(--ink); font:inherit;
-    text-decoration:underline; cursor:pointer;
-  }
-  table{width:100%; border-collapse:collapse; font-size:14px}
-  th,td{text-align:left; padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:top}
-  th{
-    font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-2);
-    font-weight:600; cursor:pointer; white-space:nowrap; user-select:none;
-  }
-  th[aria-sort]{color:var(--ink)}
-  td.kg{font-family:var(--mono); white-space:nowrap}
-  .model{font-weight:600}
-  .hang{color:var(--ink-2); font-size:13px}
-  .tag{
-    display:inline-block; font-size:11px; padding:1px 6px; border:1px solid var(--line);
-    border-radius:999px; color:var(--ink-2); white-space:nowrap;
-  }
-  .chua-kiem{color:var(--warn); background:var(--warn-bg); border-color:transparent}
-  a{color:var(--ink)}
-  .empty{padding:28px 8px; color:var(--ink-2); text-align:center}
-  footer{margin-top:28px; color:var(--ink-2); font-size:12.5px}
-  @media (max-width:640px){
-    thead{display:none}
-    tr{display:block; border-bottom:1px solid var(--line); padding:10px 0}
-    td{display:block; border:0; padding:2px 0}
-    td.kg::after{content:" kg mỗi mẻ"; color:var(--ink-2); font-family:system-ui}
-  }
+/* Bảng token (quy trình ui-ux-quy-trinh):
+   thép #F2F4F5 nền, than #1E2227 chữ, đỏ OTL #D3202A nút chính, xanh OTL #37B6FF chỉ làm dấu,
+   cộng bốn màu hạt rang cho thanh tiến trình: hạt sống, vàng, nâu, rang đậm.
+   Chỗ đậm duy nhất là thanh "rang" lúc dò; còn lại im. */
+:root{
+  --nen:#F2F4F5; --nen-2:#E3E7EA; --muc:#1E2227; --muc-2:#4B535C; --than:#262B31; --tren-than:#C9CED4;
+  --do:#D3202A; --do-an:#A9161F; --xanh:#37B6FF;
+  --hat-song:#A7AB6E; --hat-vang:#D2A75B; --hat-nau:#9A5A2C; --hat-dam:#4A2B1A;
+  --canh:#9A5205;
+  --font:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif;
+  --r:12px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--nen);color:var(--muc)}
+body{font:400 18px/1.55 var(--font)}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--xanh);outline-offset:3px}
+.khung{max-width:1160px;margin:0 auto;padding:0 32px}
+
+.dau{display:flex;align-items:center;gap:16px;padding:22px 32px}
+.dau img{height:40px;width:auto;display:block}
+.dau .goi{margin-left:auto;font-size:16px;color:var(--muc-2);text-align:right}
+.dau .goi a{display:block;font-weight:800;font-size:20px;color:var(--muc);text-decoration:none}
+
+.chinh{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:56px;align-items:start;padding-top:28px;padding-bottom:72px}
+h1{font-weight:800;font-size:clamp(34px,4.6vw,58px);line-height:1.06;letter-spacing:-.025em;margin:0 0 20px;max-width:15ch}
+.mo-dau{font-size:20px;color:var(--muc-2);max-width:54ch;margin:0 0 32px}
+
+.nut{display:inline-flex;align-items:center;justify-content:center;gap:14px;border:0;border-radius:var(--r);
+  font:800 26px/1 var(--font);cursor:pointer;text-decoration:none;min-height:84px;padding:0 40px}
+.nut svg{width:30px;height:30px;flex:none}
+.nut.lon{background:var(--do);color:#fff;width:100%;max-width:460px}
+.nut.lon:hover{background:var(--do-an)}
+.nut.lon:disabled{background:var(--nen-2);color:var(--muc-2);cursor:progress}
+.nut.nho{font-size:18px;font-weight:600;min-height:52px;padding:0 22px;border:2px solid currentColor;background:transparent;color:inherit}
+.nut.nho svg{width:20px;height:20px}
+.nut.nho:hover{background:rgba(127,127,127,.16)}
+.ghi-nut{font-size:16px;color:var(--muc-2);margin:12px 0 0}
+
+/* Thanh "rang": dò càng xa hạt càng chín. */
+.rang{margin-top:28px;max-width:460px}
+.rang-ray{height:14px;border-radius:7px;background:var(--nen-2);overflow:hidden}
+.rang-ray i{display:block;height:100%;width:0;border-radius:7px;
+  background:linear-gradient(90deg,var(--hat-song) 0,var(--hat-vang) 35%,var(--hat-nau) 70%,var(--hat-dam) 100%);
+  background-size:460px 100%;transition:width .25s linear}
+.rang-chu{margin:10px 0 0;font-size:16px;color:var(--muc-2);font-variant-numeric:tabular-nums}
+
+.ket{margin-top:32px;max-width:560px;border-radius:var(--r);padding:28px 30px}
+.ket h2{margin:0 0 14px;font-size:24px;font-weight:800;line-height:1.2}
+.ket p{margin:0 0 12px}
+.ket ul{list-style:none;margin:0 0 20px;padding:0}
+.ket ul li{display:flex;gap:12px;align-items:flex-start;margin:0 0 10px}
+.ket li svg{width:22px;height:22px;flex:none;margin-top:3px}
+.ket.tot{background:var(--than);color:#fff}
+.ket.tot li svg{color:#6FD39E}
+.ket.tot .phu{color:var(--tren-than)}
+.ket.vang{background:#FBF1E3;border:2px solid var(--canh)}
+.ket.vang h2{color:var(--canh)}
+.ket.trang{background:#fff;border:1px solid var(--nen-2)}
+.ket.trang li svg{color:var(--muc-2)}
+.ket h3{margin:24px 0 8px;font-size:20px;font-weight:800}
+.hang-may{display:flex;align-items:center;gap:16px;padding:14px 0;border-top:1px solid rgba(255,255,255,.18)}
+.hang-may b{font-size:20px;font-variant-numeric:tabular-nums}
+.hang-may .nut{margin-left:auto}
+.nhap{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.nhap input{font:600 20px/1 var(--font);padding:0 16px;min-height:52px;width:220px;border:2px solid var(--muc-2);
+  border-radius:10px;background:#fff;color:var(--muc);font-variant-numeric:tabular-nums}
+.loi-nho{color:var(--do-an);font-weight:600;margin:10px 0 0}
+ol.buoc{margin:0;padding-left:24px}
+ol.buoc li{margin:0 0 8px}
+
+/* Ảnh máy: vòng tròn chỉ đúng vào màn hình điều khiển, thứ sẽ hiện lên máy tính. */
+.anh{margin:0;background:#fff;border-radius:var(--r);padding:24px 24px 18px}
+.anh .khung-anh{position:relative}
+.anh img{display:block;width:100%;height:auto}
+.anh .vong{position:absolute;left:24%;top:46.5%;width:29%;aspect-ratio:1;border:3px solid var(--xanh);border-radius:50%;pointer-events:none}
+.anh figcaption{font-size:15px;color:var(--muc-2);margin-top:12px}
+.anh figcaption b{color:var(--muc)}
+
+/* Công ty */
+.cty{background:var(--than);color:#fff;padding:64px 0}
+.cty-luoi{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:56px}
+.cty h2{font-size:30px;font-weight:800;letter-spacing:-.015em;margin:0 0 16px;line-height:1.15}
+.cty h3{font-size:18px;font-weight:800;margin:28px 0 8px}
+.cty p{margin:0 0 12px;color:var(--tren-than);max-width:60ch}
+.cty .dam{color:#fff;font-weight:600}
+.cty ul{margin:0;padding-left:20px;color:var(--tren-than)}
+.cty li{margin:0 0 4px}
+.cty li b{color:#fff;font-weight:600}
+.lien-he{display:grid;grid-template-columns:auto 1fr;gap:12px 20px;margin:0;align-content:start}
+.lien-he dt{color:var(--tren-than);font-size:16px;padding-top:2px}
+.lien-he dd{margin:0;font-weight:600}
+.lien-he a{text-decoration:none;border-bottom:2px solid var(--xanh)}
+.lien-he a:hover{color:var(--xanh)}
+.chan{font-size:14px;color:var(--tren-than);margin:56px 0 0;max-width:none}
+
+[hidden]{display:none!important}
+
+@media (max-width:900px){
+  .chinh,.cty-luoi{grid-template-columns:1fr;gap:36px}
+  .anh{max-width:420px}
+}
+@media (max-width:560px){
+  .khung,.dau{padding-left:16px;padding-right:16px}
+  .dau .goi span{display:none}
+  .nut{font-size:22px;padding:0 20px}
+  .ket{padding:22px 18px}
+  .hang-may{flex-wrap:wrap}
+  .hang-may .nut{margin-left:0}
+  .lien-he{grid-template-columns:1fr;gap:2px}
+  .lien-he dd{margin-bottom:10px}
+}
+@media (prefers-reduced-motion:reduce){ .rang-ray i{transition:none} }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Tìm máy rang cà phê</h1>
-    <p>Lọc theo khối lượng mẻ, kiểu truyền nhiệt, nguồn nhiệt, mức tự động và nước sản xuất.</p>
-  </header>
 
-  <div class="panel">
-    <div class="row">
-      <div class="f f-wide">
-        <label for="q">Tìm hãng / model</label>
-        <input type="search" id="q" placeholder="probat, w6a, loring…" autocomplete="off">
+<header class="khung dau">
+  <img src="tai-nguyen/logo-otl.svg" alt="OTL Roaster" width="150" height="40">
+  <div class="goi"><span>Hỗ trợ kỹ thuật</span><a href="tel:+84936198938">0936 198 938</a></div>
+</header>
+
+<main class="khung chinh">
+  <div>
+    <h1>Mở màn hình máy rang ngay trên máy tính</h1>
+    <p class="mo-dau">Bấm một nút. Phần mềm tự tìm máy rang OTL trong mạng của quán, mở màn hình điều khiển
+      lên trình duyệt, rồi để lại icon <b>Máy rang OTL</b> ngoài desktop cho những lần sau.</p>
+
+    <!-- Chạy trong phần mềm: dò thật -->
+    <div id="cheDoApp" hidden>
+      <button id="nutTim" class="nut lon" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <span id="chuNut">Tìm máy rang</span>
+      </button>
+      <p class="ghi-nut" id="ghiNut">Máy tính cần nối cùng Wi-Fi hoặc cùng dây mạng với máy rang.</p>
+
+      <div class="rang" id="rang" hidden>
+        <div class="rang-ray" id="rangRay" role="progressbar" aria-label="Tiến độ dò" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="rangThanh"></i></div>
+        <p class="rang-chu" id="rangChu" role="status">Đang chuẩn bị…</p>
       </div>
-      <div class="f">
-        <label for="kg">Mẻ (kg)</label>
-        <select id="kg">
-          <option value="">Tất cả</option>
-          <option value="0-2">dưới 2</option>
-          <option value="2-7">2 – 7</option>
-          <option value="7-15">7 – 15</option>
-          <option value="15-30">15 – 30</option>
-          <option value="30-9999">trên 30</option>
-        </select>
+
+      <div id="ketQua" aria-live="polite"></div>
+    </div>
+
+    <!-- Mở từ trang tải: trình duyệt không được quét mạng nên phải tải phần mềm -->
+    <div id="cheDoWeb">
+      <a class="nut lon" href="OTL-Tim-May-Rang-v1.0.zip" download>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+        <span>Tải phần mềm</span>
+      </a>
+      <p class="ghi-nut">Cho Windows 10 và 11. Không cần cài đặt.</p>
+      <div class="ket trang">
+        <h2>Ba bước, làm một lần</h2>
+        <ol class="buoc">
+          <li>Tải về, bấm chuột phải vào tệp zip, chọn <b>Giải nén tất cả</b>.</li>
+          <li>Bấm đúp <b>OTL Tim May Rang</b>. Windows hỏi thì bấm <b>Thông tin thêm</b> rồi <b>Vẫn chạy</b>.</li>
+          <li>Bấm <b>Tìm máy rang</b>. Màn hình máy tự mở, icon <b>Máy rang OTL</b> hiện ngoài desktop.</li>
+        </ol>
+        <p style="margin:14px 0 0">Trình duyệt không được phép tự dò mạng trong quán, nên việc tìm máy do phần mềm nhỏ này làm.</p>
       </div>
-      <div class="f"><label for="kieu">Kiểu</label><select id="kieu"></select></div>
-      <div class="f"><label for="nhiet">Nguồn nhiệt</label><select id="nhiet"></select></div>
-      <div class="f"><label for="tudong">Tự động</label><select id="tudong"></select></div>
-      <div class="f"><label for="nuoc">Nước</label><select id="nuoc"></select></div>
     </div>
   </div>
 
-  <div class="meta">
-    <span class="count" id="count">đang tải…</span>
-    <button class="link" id="reset" type="button">Bỏ hết bộ lọc</button>
+  <figure class="anh">
+    <div class="khung-anh">
+      <img src="tai-nguyen/may-rang.jpg" alt="Máy rang cà phê OTL, màn hình cảm ứng nằm trên tủ điều khiển phía trước" width="740" height="1150">
+      <span class="vong" aria-hidden="true"></span>
+    </div>
+    <figcaption><b>Màn hình trong vòng xanh</b> sẽ hiện trên máy tính của bạn: xem nhiệt độ, đồ thị mẻ rang và điều khiển như đứng tại máy.</figcaption>
+  </figure>
+</main>
+
+<section class="cty" aria-labelledby="veOtl">
+  <div class="khung">
+    <div class="cty-luoi">
+      <div>
+        <h2 id="veOtl">OTL Roaster, máy rang cà phê làm tại Việt Nam</h2>
+        <p>Công ty TNHH Công nghiệp OTL thiết kế và sản xuất máy rang cà phê tại Việt Nam. Tiền thân là
+          thương hiệu O Tesla, thành lập năm 2018, đổi tên thương hiệu thành OTL năm 2025.</p>
+        <p class="dam">Máy từ 1,2 đến 500 kg mỗi mẻ, đã xuất khẩu tới hơn 6 khu vực.</p>
+
+        <h3>Máy rang</h3>
+        <p>OTL-1.2, OTL-03, OTL-06, OTL-12, OTL-15, OTL-30, OTL-60, OTL-120, và hệ thống trên 120 kg thiết kế theo yêu cầu.</p>
+
+        <h3>Thiết bị đi kèm</h3>
+        <p>Máy tách đá, xử lý khói, silo, cyclone.</p>
+
+        <h3>Hỗ trợ</h3>
+        <ul>
+          <li><b>Tư vấn</b> chọn đúng máy, từ máy mini tới hệ thống công nghiệp.</li>
+          <li><b>Lắp đặt</b> tận nơi, đúng tiêu chuẩn an toàn.</li>
+          <li><b>Đào tạo</b> vận hành trực tiếp tại xưởng của bạn.</li>
+          <li><b>Hỗ trợ kỹ thuật</b> qua đường dây nóng và chẩn đoán từ xa.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Liên hệ</h2>
+        <dl class="lien-he">
+          <dt>Điện thoại</dt><dd><a href="tel:+84936198938">0936 198 938</a></dd>
+          <dt>Zalo</dt><dd><a href="https://zalo.me/0936198938" target="_blank" rel="noopener">0936 198 938</a></dd>
+          <dt>WhatsApp</dt><dd><a href="https://wa.me/84936198938" target="_blank" rel="noopener">+84 936 198 938</a></dd>
+          <dt>Email</dt><dd><a href="mailto:otlpro.com@gmail.com">otlpro.com@gmail.com</a></dd>
+          <dt>Trang web</dt><dd><a href="https://otlpro.com" target="_blank" rel="noopener">otlpro.com</a></dd>
+          <dt>Văn phòng</dt><dd>44 Đường N5, KP. Tân Phước, P. Tân Đông Hiệp, TP. HCM</dd>
+          <dt>Nhà máy</dt><dd>398/33 ĐT743B, KP. Đông Thành, P. Tân Đông Hiệp, TP. HCM</dd>
+          <dt>YouTube</dt><dd><a href="https://www.youtube.com/@otlroaster" target="_blank" rel="noopener">@otlroaster</a></dd>
+          <dt>Facebook</dt><dd><a href="https://www.facebook.com/profile.php?id=61571855303133" target="_blank" rel="noopener">OTL Roaster</a></dd>
+        </dl>
+      </div>
+    </div>
+    <p class="chan">Tìm máy rang OTL, bản 1.0. Phần mềm chỉ dò trong mạng nội bộ của quán và không gửi dữ liệu ra ngoài.</p>
   </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th data-k="model">Máy</th>
-        <th data-k="kg">Mẻ</th>
-        <th data-k="kieu">Kiểu</th>
-        <th data-k="nhiet">Nhiệt</th>
-        <th data-k="tu_dong">Tự động</th>
-        <th data-k="nuoc">Nước</th>
-      </tr>
-    </thead>
-    <tbody id="body"></tbody>
-  </table>
-  <div class="empty" id="empty" hidden>Không có máy nào khớp. Thử bỏ một bộ lọc.</div>
-
-  <footer>
-    Dữ liệu nằm ở <code>du-lieu/may-rang.json</code> — sửa trực tiếp trên GitHub để thêm máy.
-    Thẻ <span class="tag chua-kiem">chưa kiểm</span> nghĩa là thông số chưa đối chiếu với catalog của hãng.
-  </footer>
-</div>
+</section>
 
 <script>
-const COT = ['kieu', 'nhiet', 'tu_dong', 'nuoc'];
-const ID_SELECT = { kieu: 'kieu', nhiet: 'nhiet', tu_dong: 'tudong', nuoc: 'nuoc' };
-let may = [], sortK = 'kg', sortDir = 1;
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var ICON_XONG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  var ICON_MO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
+  var CHUNG_CHI = '<h3>Trình duyệt báo “Kết nối không riêng tư”?</h3>' +
+    '<p class="phu">Máy rang dùng chứng chỉ riêng trong mạng nội bộ của quán, không phải lỗi. Chỉ làm một lần:</p>' +
+    '<ol class="buoc phu"><li>Bấm <b>Nâng cao</b>.</li><li>Bấm <b>Tiếp tục truy cập</b> địa chỉ của máy.</li><li>Đăng nhập bằng tài khoản OTL giao kèm máy.</li></ol>';
 
-const el = id => document.getElementById(id);
-const soKg = m => typeof m.kg === 'number' ? m.kg : 0;
-const thoat = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function json(url) { return fetch(url, { cache: 'no-store' }).then(function (r) { return r.json(); }); }
 
-function dungSelect() {
-  for (const k of COT) {
-    const giaTri = [...new Set(may.map(m => m[k]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi'));
-    el(ID_SELECT[k]).innerHTML = '<option value="">Tất cả</option>' +
-      giaTri.map(v => `<option value="${thoat(v)}">${thoat(v)}</option>`).join('');
+  // Phần mềm trả lời api/ten thì trang đang chạy trong phần mềm; ở trang tải thì 404, giữ nút Tải.
+  fetch('api/ten', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+    if (!j || j.app !== 'otl-tim-may-rang') return;
+    $('cheDoWeb').hidden = true;
+    $('cheDoApp').hidden = false;
+    var song = function () { fetch('api/song', { cache: 'no-store' }).catch(function () {}); };
+    song(); setInterval(song, 5000);
+    $('nutTim').addEventListener('click', tim);
+    $('nutTim').focus();
+  }).catch(function () {});
+
+  var may = [];
+
+  function tim() {
+    may = [];
+    $('ketQua').innerHTML = '';
+    $('nutTim').disabled = true;
+    $('chuNut').textContent = 'Đang tìm…';
+    $('ghiNut').hidden = true;
+    $('rang').hidden = false;
+    datTien(0, 'Đang xem máy tính này nối những mạng nào…');
+
+    var es = new EventSource('api/tim');
+    var xong = false;
+    es.addEventListener('mang', function (e) {
+      var d = JSON.parse(e.data).dai;
+      if (d.length) datTien(1, 'Đang dò ' + d.map(function (x) { return x.ten + ' ' + x.mang; }).join(' và ') + '…');
+    });
+    es.addEventListener('tien', function (e) {
+      var d = JSON.parse(e.data);
+      datTien(Math.round(d.xong * 100 / d.tong), 'Đang dò ' + d.dai + ': đã thử ' + d.xong + ' trên ' + d.tong + ' địa chỉ' +
+        (may.length ? ', thấy ' + may.length + ' máy' : ''));
+    });
+    es.addEventListener('may', function (e) { may.push(JSON.parse(e.data)); });
+    es.addEventListener('het', function (e) {
+      xong = true; es.close();
+      var d = JSON.parse(e.data);
+      datTien(100, d.loi === 'khong-mang' ? 'Máy tính này chưa nối mạng nào.' : 'Đã dò xong.');
+      ketThuc(d);
+    });
+    es.onerror = function () {
+      if (xong) return;
+      es.close();
+      ketThuc({ loi: 'mat-app' });
+    };
   }
-}
 
-function loc() {
-  const q = el('q').value.trim().toLowerCase();
-  const [lo, hi] = (el('kg').value || '0-99999').split('-').map(Number);
-  const bo = {};
-  for (const k of COT) bo[k] = el(ID_SELECT[k]).value;
+  function datTien(phan, chu) {
+    $('rangThanh').style.width = phan + '%';
+    $('rangRay').setAttribute('aria-valuenow', phan);
+    $('rangChu').textContent = chu;
+  }
 
-  const ds = may.filter(m => {
-    if (q && !`${m.hang} ${m.model}`.toLowerCase().includes(q)) return false;
-    const kg = soKg(m);
-    if (kg < lo || kg > hi) return false;
-    for (const k of COT) if (bo[k] && m[k] !== bo[k]) return false;
-    return true;
+  function ketThuc(d) {
+    $('nutTim').disabled = false;
+    $('chuNut').textContent = 'Tìm lại';
+    var sanSang = may.filter(function (m) { return m.trangThai === 'san-sang'; });
+    var chuaBat = may.filter(function (m) { return m.trangThai !== 'san-sang'; });
+    var h = '';
+    if (d.loi === 'mat-app') {
+      h = '<div class="ket vang"><h2>Phần mềm đã tắt</h2><p>Bấm đúp lại <b>OTL Tim May Rang</b> rồi bấm Tìm máy rang.</p></div>';
+    } else if (sanSang.length === 1) {
+      var m = sanSang[0];
+      h = '<div class="ket tot"><h2>Đã mở màn hình máy rang</h2><ul>' +
+        '<li>' + ICON_XONG + '<span>Máy rang ở địa chỉ <b>' + esc(m.ip) + '</b>.</span></li>' +
+        '<li>' + ICON_XONG + '<span>Màn hình máy đã mở trong một thẻ trình duyệt mới.</span></li>' +
+        (d.icon && d.icon.length ? '<li>' + ICON_XONG + '<span>Đã tạo icon <b>' + esc(d.icon[0]) + '</b> ngoài desktop. Lần sau bấm đúp icon đó là vào thẳng.</span></li>' : '') +
+        '</ul><button class="nut nho" type="button" data-ip="' + esc(m.ip) + '">' + ICON_MO + 'Mở lại màn hình máy</button>' + CHUNG_CHI + '</div>';
+    } else if (sanSang.length > 1) {
+      h = '<div class="ket tot"><h2>Tìm thấy ' + sanSang.length + ' máy rang</h2>' +
+        '<p class="phu">Mỗi máy đã có một icon riêng ngoài desktop, ghi kèm địa chỉ. Chọn máy muốn mở:</p>' +
+        sanSang.map(function (m) {
+          return '<div class="hang-may"><b>' + esc(m.ip) + '</b><button class="nut nho" type="button" data-ip="' + esc(m.ip) + '">' + ICON_MO + 'Mở máy này</button></div>';
+        }).join('') + CHUNG_CHI + '</div>';
+    }
+    if (chuaBat.length) {
+      h += '<div class="ket vang"><h2>Thấy màn hình máy nhưng chưa xem từ máy tính được</h2>' +
+        '<p>Màn hình ở địa chỉ <b>' + chuaBat.map(function (m) { return esc(m.ip); }).join(', ') + '</b> chưa bật chế độ xem từ máy tính. ' +
+        'Gọi OTL <a href="tel:+84936198938"><b>0936 198 938</b></a> để kỹ thuật bật giúp.</p></div>';
+    }
+    if (!sanSang.length && d.loi !== 'mat-app') {
+      h += '<div class="ket trang"><h2>' + (chuaBat.length ? 'Hoặc nhập địa chỉ máy khác' : 'Chưa thấy máy rang nào') + '</h2>' +
+        (chuaBat.length ? '' : '<ul>' +
+          '<li>' + ICON_XONG + '<span>Máy rang đã bật nguồn, màn hình đã sáng.</span></li>' +
+          '<li>' + ICON_XONG + '<span>Máy tính nối cùng Wi-Fi hoặc cùng bộ phát với máy rang.</span></li>' +
+          '<li>' + ICON_XONG + '<span>Dây mạng ở tủ điện máy rang cắm chặt.</span></li></ul>') +
+        '<p>Biết địa chỉ IP ghi trên màn hình máy thì nhập vào đây:</p>' +
+        '<div class="nhap"><input id="oIp" inputmode="decimal" placeholder="192.168.0.20" autocomplete="off" aria-label="Địa chỉ IP của máy rang">' +
+        '<button class="nut nho" type="button" id="nutThu">Mở máy này</button></div><p class="loi-nho" id="loiIp" hidden></p></div>';
+    }
+    $('ketQua').innerHTML = h;
+    if ($('nutThu')) {
+      $('nutThu').addEventListener('click', thuIp);
+      $('oIp').addEventListener('keydown', function (e) { if (e.key === 'Enter') thuIp(); });
+    }
+  }
+
+  // Một bộ nghe cho mọi nút "Mở" trong khối kết quả.
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('button[data-ip]');
+    if (b) fetch('api/mo?ip=' + encodeURIComponent(b.getAttribute('data-ip')), { cache: 'no-store' });
   });
 
-  ds.sort((a, b) => {
-    const A = a[sortK], B = b[sortK];
-    const r = typeof A === 'number' && typeof B === 'number'
-      ? A - B
-      : String(A ?? '').localeCompare(String(B ?? ''), 'vi');
-    return r * sortDir;
-  });
-
-  ve(ds);
-}
-
-const o = v => v ? `<span class="tag">${thoat(v)}</span>` : '';
-
-function ve(ds) {
-  el('count').textContent = `${ds.length} / ${may.length} máy`;
-  el('empty').hidden = ds.length > 0;
-  el('body').innerHTML = ds.map(m => {
-    const ten = m.nguon
-      ? `<a href="${thoat(m.nguon)}" target="_blank" rel="noopener">${thoat(m.model)}</a>`
-      : thoat(m.model);
-    const canKiem = m.da_kiem ? '' : ' <span class="tag chua-kiem">chưa kiểm</span>';
-    return `<tr>
-      <td><div class="model">${ten}${canKiem}</div><div class="hang">${thoat(m.hang)}</div></td>
-      <td class="kg">${thoat(m.kg)}</td>
-      <td>${o(m.kieu)}</td>
-      <td>${o(m.nhiet)}</td>
-      <td>${o(m.tu_dong)}</td>
-      <td>${o(m.nuoc)}</td>
-    </tr>`;
-  }).join('');
-
-  document.querySelectorAll('th[data-k]').forEach(th => {
-    if (th.dataset.k === sortK) th.setAttribute('aria-sort', sortDir === 1 ? 'ascending' : 'descending');
-    else th.removeAttribute('aria-sort');
-  });
-}
-
-document.querySelectorAll('th[data-k]').forEach(th => {
-  th.addEventListener('click', () => {
-    const k = th.dataset.k;
-    if (k === sortK) sortDir = -sortDir; else { sortK = k; sortDir = 1; }
-    loc();
-  });
-});
-
-['q', 'kg', ...Object.values(ID_SELECT)].forEach(id => el(id).addEventListener('input', loc));
-
-el('reset').addEventListener('click', () => {
-  el('q').value = '';
-  el('kg').value = '';
-  for (const k of COT) el(ID_SELECT[k]).value = '';
-  loc();
-});
-
-fetch('du-lieu/may-rang.json')
-  .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-  .then(d => { may = d.may || []; dungSelect(); loc(); })
-  .catch(e => { el('count').textContent = 'Không đọc được dữ liệu: ' + e.message; });
+  function thuIp() {
+    var ip = $('oIp').value.trim(), loi = $('loiIp');
+    loi.hidden = true;
+    json('api/thu?ip=' + encodeURIComponent(ip)).then(function (m) {
+      if (m.loi === 'ip-sai') { loi.textContent = 'Địa chỉ phải có dạng 192.168.x.x, 10.x.x.x hoặc 172.16.x.x tới 172.31.x.x.'; loi.hidden = false; return; }
+      if (m.loi === 'khong-phai-may') { loi.textContent = 'Địa chỉ ' + ip + ' có trả lời nhưng không phải màn hình máy rang. Kiểm lại số trên màn hình máy.'; loi.hidden = false; return; }
+      if (m.loi) { loi.textContent = 'Địa chỉ ' + ip + ' không trả lời. Kiểm lại số trên màn hình máy và dây mạng.'; loi.hidden = false; return; }
+      may = [m];
+      if (m.trangThai !== 'san-sang') { ketThuc({}); return; }
+      return json('api/mo?ip=' + encodeURIComponent(m.ip)).then(function (k) { ketThuc({ icon: k.icon ? [k.icon] : [] }); });
+    }).catch(function () { loi.textContent = 'Phần mềm đã tắt. Bấm đúp lại OTL Tim May Rang.'; loi.hidden = false; });
+  }
+})();
 </script>
 </body>
 </html>
