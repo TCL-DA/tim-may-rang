@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tìm máy rang OTL</title>
+<meta name="ban-trang" content="1.1.1">
 <meta name="description" content="Bấm một nút để tìm máy rang OTL trong mạng của quán, mở màn hình điều khiển trên máy tính và tạo icon ngoài desktop.">
 <link rel="icon" type="image/png" href="tai-nguyen/icon-otl.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -211,7 +212,7 @@ ol.buoc li{margin:0 0 8px}
         </dl>
       </div>
     </div>
-    <p class="chan">Tìm máy rang OTL, bản 1.1. Phần mềm chỉ dò trong mạng nội bộ của quán và không gửi dữ liệu ra ngoài.</p>
+    <p class="chan">Tìm máy rang OTL, bản 1.1.1. Phần mềm chỉ dò trong mạng nội bộ của quán và không gửi dữ liệu ra ngoài.</p>
   </div>
 </section>
 
@@ -315,6 +316,16 @@ ol.buoc li{margin:0 0 8px}
 
   hienKetQua();
   window.addEventListener('hashchange', hienKetQua);
+
+  // GitHub Pages cho trình duyệt giữ trang 10 phút (Zalo/Facebook còn lâu hơn), nên khách mở ngay sau khi
+  // cập nhật vẫn thấy bản cũ. Hỏi bản mới nhất, bỏ qua bộ đệm; khác bản đang hiện thì nạp lại đúng một lần.
+  var ban = function (html) { var m = /<meta name="ban-trang" content="([^"]+)"/.exec(html); return m && m[1]; };
+  fetch(location.pathname, { cache: 'reload' }).then(function (r) { return r.text(); }).then(function (html) {
+    var moi = ban(html), dang = ban(document.documentElement.outerHTML), khoa = 'otl-nap-lai-' + moi;
+    var daNap = false;
+    try { daNap = sessionStorage.getItem(khoa) === '1'; sessionStorage.setItem(khoa, '1'); } catch (e) { }
+    if (moi && dang && moi !== dang && !daNap) location.reload();
+  }).catch(function () { });
 })();
 </script>
 </body>
